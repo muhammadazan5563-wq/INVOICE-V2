@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Invoice } from '../types';
 import {
   Link2,
@@ -35,12 +35,55 @@ const relativeLabel = (dateStr: string) => {
   return `${past} day${past === 1 ? '' : 's'} ago`;
 };
 
-const deliveryLabel = (invoice: Invoice) => {
-  if (invoice.balance <= 0) return 'Settled';
-  if (invoice.amountPaid > 0) return 'Part paid';
+/** Returns the actual status label matching the invoice ledger */
+const getStatusLabel = (invoice: Invoice): string => {
+  if (invoice.status === 'Paid' || invoice.balance <= 0) return 'Settled';
+  if (invoice.amountPaid > 0 && invoice.balance > 0) return 'Part paid';
   if (invoice.status === 'Overdue') return 'Overdue';
-  if (invoice.status === 'Pending') return 'Unsent';
-  return 'Viewed';
+  if (invoice.status === 'Unpaid') return 'Unpaid';
+  if (invoice.status === 'Due') return 'Due';
+  if (invoice.status === 'Pending') return 'Pending';
+  return invoice.status;
+};
+
+/** Returns color classes matching the Invoice Ledger status colors */
+const getStatusColors = (invoice: Invoice): { bg: string; text: string } => {
+  if (invoice.status === 'Paid' || invoice.balance <= 0) {
+    return { bg: 'bg-[#e8f7ee]', text: 'text-[#2f6b48]' };
+  }
+  if (invoice.amountPaid > 0 && invoice.balance > 0) {
+    return { bg: 'bg-[#fdf3e2]', text: 'text-[#8a5c17]' };
+  }
+  if (invoice.status === 'Overdue') {
+    return { bg: 'bg-brand-pale', text: 'text-brand' };
+  }
+  if (invoice.status === 'Unpaid') {
+    return { bg: 'bg-[#fdeeea]', text: 'text-[#a8492f]' };
+  }
+  if (invoice.status === 'Due' || invoice.status === 'Pending') {
+    return { bg: 'bg-[#fdf3e2]', text: 'text-[#8a5c17]' };
+  }
+  return { bg: 'bg-mist', text: 'text-quill' };
+};
+
+/** Returns color classes for the dark panel (white bg variants) */
+const getStatusColorsDark = (invoice: Invoice): string => {
+  if (invoice.status === 'Paid' || invoice.balance <= 0) {
+    return 'bg-[#e8f7ee] text-[#2f6b48]';
+  }
+  if (invoice.amountPaid > 0 && invoice.balance > 0) {
+    return 'bg-[#fdf3e2] text-[#8a5c17]';
+  }
+  if (invoice.status === 'Overdue') {
+    return 'bg-[#ede8fc] text-[#5a49e6]';
+  }
+  if (invoice.status === 'Unpaid') {
+    return 'bg-[#fdeeea] text-[#a8492f]';
+  }
+  if (invoice.status === 'Due' || invoice.status === 'Pending') {
+    return 'bg-[#fdf3e2] text-[#8a5c17]';
+  }
+  return 'bg-white/15 text-white/70';
 };
 
 const avatarTints = [
@@ -51,6 +94,8 @@ const avatarTints = [
   'bg-[#e2cdf5] text-[#5f3a92]',
 ];
 
+const ITEMS_PER_PAGE = 8;
+
 export default function InvoiceShowcase({
   invoices,
   currencySymbol,
@@ -60,7 +105,9 @@ export default function InvoiceShowcase({
   onEdit,
   onMarkAsPaid,
 }: InvoiceShowcaseProps) {
-  const [tab, setTab] = useState<ShowcaseTab>('unpaid');
+  const [tab, setTab] = useState<ShowcaseTab>('all');
+  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const draft = invoices.filter((inv) => inv.status === 'Pending');
   const unpaid = invoices.filter((inv) => inv.balance > 0);
@@ -71,8 +118,30 @@ export default function InvoiceShowcase({
     return invoices;
   };
 
-  const rows = listFor(tab).slice(0, 6);
+  const allRows = listFor(tab);
+  const rows = allRows.slice(0, visibleCount);
+  const hasMore = visibleCount < allRows.length;
   const detail = selected ?? rows[0] ?? null;
+
+  // Reset visible count when tab changes
+  useEffect(() => {
+    setVisibleCount(ITEMS_PER_PAGE);
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [tab]);
+
+  // Infinite scroll handler - load more when scrolled near bottom
+  const handleScroll = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container || !hasMore) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    // Load more when within 80px of the bottom
+    if (scrollHeight - scrollTop - clientHeight < 80) {
+      setVisibleCount((prev) => Math.min(prev + ITEMS_PER_PAGE, allRows.length));
+    }
+  }, [hasMore, allRows.length]);
 
   const tabs: { key: ShowcaseTab; label: string; count?: number }[] = [
     { key: 'all', label: 'All invoices' },
@@ -136,52 +205,88 @@ export default function InvoiceShowcase({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)] gap-4 lg:pt-8">
-        {/* Left rail — invoice picker */}
-        <div className="space-y-1.5 max-h-[420px] overflow-y-auto ink-scroll pr-1">
-          {rows.length === 0 && (
-            <div className="text-center py-14 px-6">
-              <p className="text-[13px] font-bold text-white/80">Nothing waiting here</p>
-              <p className="text-[11px] text-white/45 mt-1.5 leading-relaxed">
-                Invoices you create will queue up in this rail so you can settle them fast.
-              </p>
-            </div>
-          )}
+        {/* Left rail — invoice picker with infinite scroll */}
+        <div className="flex flex-col">
+          <div
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            className="space-y-1.5 max-h-[420px] overflow-y-auto ink-scroll pr-1"
+          >
+            {rows.length === 0 && (
+              <div className="text-center py-14 px-6">
+                <p className="text-[13px] font-bold text-white/80">Nothing waiting here</p>
+                <p className="text-[11px] text-white/45 mt-1.5 leading-relaxed">
+                  Invoices you create will queue up in this rail so you can settle them fast.
+                </p>
+              </div>
+            )}
 
-          {rows.map((inv, idx) => {
-            const active = detail?.id === inv.id;
-            const tint = avatarTints[idx % avatarTints.length];
-            return (
-              <button
-                key={inv.id}
-                type="button"
-                onClick={() => onSelect(inv)}
-                className={`w-full flex items-center gap-3 p-2.5 rounded-[18px] text-left transition-colors duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-soft ${
-                  active ? 'bg-brand' : 'hover:md:bg-white/6'
-                }`}
-              >
-                <span className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-[13px] font-bold ${tint}`}>
-                  {(inv.customerName || '?').charAt(0).toUpperCase()}
-                </span>
-
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[12px] font-bold text-white truncate">#{inv.id}</span>
-                  <span className="block text-[10px] text-white/50 mt-0.5">{relativeLabel(inv.date)}</span>
-                </span>
-
-                <span
-                  className={`text-[10px] font-bold px-2.5 py-1 rounded-full shrink-0 ${
-                    active ? 'bg-white text-brand' : 'bg-white/10 text-white/65'
+            {rows.map((inv, idx) => {
+              const active = detail?.id === inv.id;
+              const tint = avatarTints[idx % avatarTints.length];
+              const statusLabel = getStatusLabel(inv);
+              const statusColors = getStatusColors(inv);
+              return (
+                <button
+                  key={inv.id}
+                  type="button"
+                  onClick={() => onSelect(inv)}
+                  className={`w-full flex items-center gap-3 p-2.5 rounded-[18px] text-left transition-colors duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-soft ${
+                    active ? 'bg-brand' : 'hover:md:bg-white/6'
                   }`}
                 >
-                  {deliveryLabel(inv)}
-                </span>
+                  <span className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-[13px] font-bold ${tint}`}>
+                    {(inv.customerName || '?').charAt(0).toUpperCase()}
+                  </span>
 
-                <span className="nums text-[12px] font-bold text-white shrink-0">
-                  {currencySymbol}{money(inv.totalAmount)}
-                </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[12px] font-bold text-white truncate">#{inv.id}</span>
+                    <span className="block text-[10px] text-white/50 mt-0.5">{relativeLabel(inv.date)}</span>
+                  </span>
+
+                  <span
+                    className={`text-[10px] font-bold px-2.5 py-1 rounded-full shrink-0 ${
+                      active
+                        ? `${statusColors.bg} ${statusColors.text}`
+                        : `${statusColors.bg} ${statusColors.text}`
+                    }`}
+                  >
+                    {statusLabel}
+                  </span>
+
+                  <span className="nums text-[12px] font-bold text-white shrink-0">
+                    {currencySymbol}{money(inv.totalAmount)}
+                  </span>
+                </button>
+              );
+            })}
+
+            {/* Loading indicator when scrolling */}
+            {hasMore && (
+              <div className="flex items-center justify-center py-3">
+                <div className="flex items-center gap-2 text-[11px] text-white/40 font-medium">
+                  <div className="w-4 h-4 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+                  <span>Scroll for more ({allRows.length - visibleCount} remaining)</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Bottom count indicator */}
+          <div className="mt-2 px-2 flex items-center justify-between">
+            <span className="nums text-[10px] font-bold text-white/40">
+              {Math.min(visibleCount, allRows.length)} of {allRows.length}
+            </span>
+            {hasMore && (
+              <button
+                type="button"
+                onClick={() => setVisibleCount((prev) => Math.min(prev + ITEMS_PER_PAGE, allRows.length))}
+                className="text-[10px] font-bold text-brand-soft hover:text-white transition-colors cursor-pointer"
+              >
+                Load more
               </button>
-            );
-          })}
+            )}
+          </div>
         </div>
 
         {/* Right panel — violet invoice detail */}
@@ -192,8 +297,8 @@ export default function InvoiceShowcase({
                 <span className="text-[10px] font-bold uppercase tracking-wider text-white/55">Invoice details</span>
                 <div className="flex items-center gap-2.5 mt-2">
                   <span className="text-[24px] font-extrabold tracking-tight text-white font-display">#{detail.id}</span>
-                  <span className="text-[10px] font-bold text-white/70 bg-white/15 px-2.5 py-1 rounded-full">
-                    {deliveryLabel(detail)}
+                  <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${getStatusColorsDark(detail)}`}>
+                    {getStatusLabel(detail)}
                   </span>
                 </div>
                 <span className="block text-[11px] text-white/55 mt-1.5">Issued {detail.date || '—'}</span>
@@ -307,7 +412,7 @@ export default function InvoiceShowcase({
                     Settle now
                   </button>
                 ) : (
-                  <span className="bg-white/20 text-white text-[12px] font-bold px-5 py-3 rounded-full">
+                  <span className="bg-[#e8f7ee] text-[#2f6b48] text-[12px] font-bold px-5 py-3 rounded-full">
                     Paid in full
                   </span>
                 )}
