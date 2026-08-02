@@ -1,4 +1,4 @@
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, BarChart, Bar, CartesianGrid } from 'recharts';
 import { Invoice } from '../types';
 
 interface ChartsProps {
@@ -8,13 +8,13 @@ interface ChartsProps {
 export default function Charts({ invoices }: ChartsProps) {
   // Revenue Over Time grouped by Month-Year
   const monthlyDataMap: { [key: string]: { month: string; revenue: number; count: number } } = {};
-  
+
   invoices.forEach((inv) => {
     if (!inv.date) return;
     const dateObj = new Date(inv.date);
     if (isNaN(dateObj.getTime())) return;
     const monthYear = dateObj.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-    
+
     if (!monthlyDataMap[monthYear]) {
       monthlyDataMap[monthYear] = { month: monthYear, revenue: 0, count: 0 };
     }
@@ -39,11 +39,11 @@ export default function Charts({ invoices }: ChartsProps) {
   });
 
   const statusData = [
-    { name: 'Paid', value: statusCounts.Paid, color: '#10B981' },
-    { name: 'Unpaid', value: statusCounts.Unpaid, color: '#F43F5E' },
-    { name: 'Pending', value: statusCounts.Pending, color: '#F59E0B' },
-    { name: 'Overdue', value: statusCounts.Overdue, color: '#8B5CF6' },
-  ].filter(item => item.value > 0);
+    { name: 'Paid', value: statusCounts.Paid, color: '#5a49e6' },
+    { name: 'Unpaid', value: statusCounts.Unpaid, color: '#e4694a' },
+    { name: 'Pending', value: statusCounts.Pending, color: '#e0a63f' },
+    { name: 'Overdue', value: statusCounts.Overdue, color: '#8a7bf5' },
+  ].filter((item) => item.value > 0);
 
   // Top Customers
   const customerMap: { [key: string]: number } = {};
@@ -58,46 +58,60 @@ export default function Charts({ invoices }: ChartsProps) {
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 5);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
-  };
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
 
-  const CustomTooltipStyle = {
-    background: '#1E293B',
-    borderRadius: '12px',
+  const tooltipStyle = {
+    background: '#131126',
+    borderRadius: '14px',
     border: 'none',
     color: '#FFF',
-    boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
+    boxShadow: '0 18px 40px -22px rgba(19,17,38,0.8)',
     padding: '10px 14px',
-    fontSize: '12px'
-  };
+    fontSize: '12px',
+    fontWeight: 600,
+  } as const;
+
+  const axisTick = { fill: '#9d99b4', fontSize: 11, fontWeight: 600 };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" id="invoice-charts-grid">
       {/* Revenue Trend */}
       <div className="col-span-1 lg:col-span-2" id="chart-revenue-trend">
-        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Revenue Trend</h3>
+        <h3 className="text-[12px] font-bold text-quill uppercase tracking-wider mb-4">Revenue trend</h3>
         <div className="h-56">
           {monthlyData.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-gray-300 font-medium text-sm">
-              No revenue data available
+            <div className="h-full flex items-center justify-center bg-mist rounded-[18px] text-[12px] font-semibold text-quill-soft">
+              Revenue appears here once invoices carry dates
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={monthlyData} margin={{ top: 10, right: 10, left: -18, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366F1" stopOpacity={0.15}/>
-                    <stop offset="95%" stopColor="#6366F1" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#5a49e6" stopOpacity={0.28} />
+                    <stop offset="95%" stopColor="#5a49e6" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="month" stroke="#CBD5E1" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke="#CBD5E1" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `$${val}`} />
-                <Tooltip 
-                  formatter={(value: any) => [formatCurrency(value), 'Revenue']}
-                  contentStyle={CustomTooltipStyle}
+                <CartesianGrid stroke="#e6e4f0" strokeDasharray="4 6" vertical={false} />
+                <XAxis dataKey="month" stroke="transparent" tick={axisTick} tickLine={false} axisLine={false} />
+                <YAxis
+                  stroke="transparent"
+                  tick={axisTick}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(val) => `$${val}`}
                 />
-                <Area type="monotone" dataKey="revenue" stroke="#6366F1" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRevenue)" />
+                <Tooltip formatter={(value: any) => [formatCurrency(value), 'Revenue']} contentStyle={tooltipStyle} />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#5a49e6"
+                  strokeWidth={2.5}
+                  fillOpacity={1}
+                  fill="url(#colorRevenue)"
+                  activeDot={{ r: 5, fill: '#fff', stroke: '#5a49e6', strokeWidth: 2 }}
+                />
               </AreaChart>
             </ResponsiveContainer>
           )}
@@ -106,46 +120,36 @@ export default function Charts({ invoices }: ChartsProps) {
 
       {/* Status Donut */}
       <div id="chart-status-breakdown">
-        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Status Breakdown</h3>
+        <h3 className="text-[12px] font-bold text-quill uppercase tracking-wider mb-4">Status breakdown</h3>
         <div className="h-56 relative flex items-center justify-center">
           {statusData.length === 0 ? (
-            <div className="text-gray-300 font-medium text-sm">No data</div>
+            <div className="w-full h-full flex items-center justify-center bg-mist rounded-[18px] text-[12px] font-semibold text-quill-soft">
+              No billing yet
+            </div>
           ) : (
             <>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie
-                    data={statusData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={55}
-                    outerRadius={75}
-                    paddingAngle={4}
-                    dataKey="value"
-                  >
+                  <Pie data={statusData} cx="50%" cy="50%" innerRadius={56} outerRadius={78} paddingAngle={4} dataKey="value">
                     {statusData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                      <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
                     ))}
                   </Pie>
-                  <Tooltip 
-                    formatter={(value: any) => [formatCurrency(value), 'Value']}
-                    contentStyle={CustomTooltipStyle}
-                  />
+                  <Tooltip formatter={(value: any) => [formatCurrency(value), 'Value']} contentStyle={tooltipStyle} />
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-[10px] text-gray-400 font-medium uppercase">Total</span>
-                <span className="text-lg font-bold text-gray-800">
+                <span className="text-[10px] text-quill-soft font-bold uppercase tracking-wider">Billed</span>
+                <span className="nums text-[17px] font-extrabold text-ink font-display mt-0.5">
                   {formatCurrency(statusData.reduce((acc, curr) => acc + curr.value, 0))}
                 </span>
               </div>
             </>
           )}
         </div>
-        {/* Legend */}
         <div className="flex flex-wrap gap-x-3 gap-y-1.5 justify-center mt-3">
           {statusData.map((item) => (
-            <div key={item.name} className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
+            <div key={item.name} className="flex items-center gap-1.5 text-[11px] text-quill font-semibold">
               <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
               {item.name}
             </div>
@@ -155,24 +159,36 @@ export default function Charts({ invoices }: ChartsProps) {
 
       {/* Top Customers */}
       <div className="col-span-1 lg:col-span-3" id="chart-top-customers">
-        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Top Customers</h3>
+        <h3 className="text-[12px] font-bold text-quill uppercase tracking-wider mb-4">Top customers</h3>
         <div className="h-48">
           {customerData.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-gray-300 font-medium text-sm">
-              No customer data available
+            <div className="h-full flex items-center justify-center bg-mist rounded-[18px] text-[12px] font-semibold text-quill-soft">
+              Customer ranking builds up as you invoice
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={customerData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
-                <XAxis type="number" stroke="#CBD5E1" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `$${val}`} />
-                <YAxis type="category" dataKey="name" stroke="#64748B" fontSize={11} tickLine={false} axisLine={false} width={100} />
-                <Tooltip 
-                  formatter={(value: any) => [formatCurrency(value), 'Revenue']}
-                  contentStyle={CustomTooltipStyle}
+                <CartesianGrid stroke="#e6e4f0" strokeDasharray="4 6" horizontal={false} />
+                <XAxis
+                  type="number"
+                  stroke="transparent"
+                  tick={axisTick}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(val) => `$${val}`}
                 />
-                <Bar dataKey="revenue" radius={[0, 8, 8, 0]} maxBarSize={28}>
+                <YAxis type="category" dataKey="name" stroke="transparent" tick={axisTick} tickLine={false} axisLine={false} width={110} />
+                <Tooltip
+                  formatter={(value: any) => [formatCurrency(value), 'Revenue']}
+                  contentStyle={tooltipStyle}
+                  cursor={{ fill: 'rgba(90,73,230,0.06)' }}
+                />
+                <Bar dataKey="revenue" radius={[0, 10, 10, 0]} maxBarSize={26}>
                   {customerData.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={index === 0 ? '#6366F1' : index === 1 ? '#818CF8' : '#C7D2FE'} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={index === 0 ? '#5a49e6' : index === 1 ? '#7a6af0' : '#b4aaf8'}
+                    />
                   ))}
                 </Bar>
               </BarChart>
