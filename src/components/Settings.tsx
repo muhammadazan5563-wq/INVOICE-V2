@@ -295,30 +295,30 @@ export default function Settings({ user, token, onClose, onSettingsSaved }: Sett
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-mist">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-4 border-slate-300 border-t-blue-500 rounded-full animate-spin"></div>
-          <p className="text-xs font-semibold text-slate-500">Loading settings...</p>
+          <p className="text-xs font-semibold text-quill">Loading settings...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50" id="settings-root">
+    <div className="min-h-screen bg-mist/50" id="settings-root">
       {/* Header */}
-      <header className="bg-white border-b border-slate-100 sticky top-0 z-40 px-6 py-4">
+      <header className="bg-shell border-b border-hairline sticky top-0 z-40 px-6 py-4">
         <div className="max-w-5xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
-              className="flex items-center gap-1.5 text-slate-500 hover:text-slate-800 text-sm font-medium transition-colors"
+              className="flex items-center gap-1.5 text-quill hover:text-ink text-sm font-medium transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
             <div>
-              <h1 className="text-lg font-black text-slate-800 tracking-tight">Settings</h1>
-              <p className="text-xs text-slate-400 font-medium">
+              <h1 className="text-lg font-extrabold text-ink tracking-tight">Settings</h1>
+              <p className="text-xs text-quill-soft font-medium">
                 Configure your spreadsheet, invoice template & defaults
               </p>
             </div>
@@ -329,25 +329,25 @@ export default function Settings({ user, token, onClose, onSettingsSaved }: Sett
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         {/* Success/Error Messages */}
         {saveSuccess && (
-          <div className="mb-6 bg-emerald-50 text-emerald-700 border border-emerald-100 p-4 rounded-2xl text-sm font-medium flex items-center gap-2 animate-fade-in">
+          <div className="mb-6 bg-emerald-50 text-emerald-700 border border-emerald-100 p-4 rounded-[20px] text-sm font-medium flex items-center gap-2 animate-fade-in">
             <CheckCircle className="w-4 h-4" /> {saveSuccess}
           </div>
         )}
         {error && (
-          <div className="mb-6 bg-red-50 text-red-600 border border-red-100 p-4 rounded-2xl text-sm font-medium flex items-center gap-2 animate-fade-in">
+          <div className="mb-6 bg-red-50 text-red-600 border border-red-100 p-4 rounded-[20px] text-sm font-medium flex items-center gap-2 animate-fade-in">
             <AlertCircle className="w-4 h-4" /> {error}
             <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-600">✕</button>
           </div>
         )}
 
         {/* Tab Navigation */}
-        <div className="flex gap-2 mb-8 border-b border-slate-100 pb-4">
+        <div className="flex gap-2 mb-8 border-b border-hairline pb-4">
           <button
             onClick={() => setActiveTab('spreadsheet')}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
               activeTab === 'spreadsheet'
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-100'
-                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                ? 'bg-brand text-white shadow-md'
+                : 'bg-shell text-quill border border-hairline hover:bg-mist'
             }`}
           >
             <FileSpreadsheet className="w-4 h-4" /> Spreadsheet Account
@@ -356,8 +356,8 @@ export default function Settings({ user, token, onClose, onSettingsSaved }: Sett
             onClick={() => setActiveTab('template')}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
               activeTab === 'template'
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-100'
-                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                ? 'bg-brand text-white shadow-md'
+                : 'bg-shell text-quill border border-hairline hover:bg-mist'
             }`}
           >
             <Palette className="w-4 h-4" /> Invoice Template
@@ -367,19 +367,19 @@ export default function Settings({ user, token, onClose, onSettingsSaved }: Sett
         {/* Tab Content */}
         {activeTab === 'spreadsheet' && (
           <div className="space-y-6 animate-fade-in">
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 lg:p-8 space-y-6">
+            <div className="bg-shell rounded-[26px] border border-hairline shadow-sm p-6 lg:p-8 space-y-6">
               <div>
-                <h2 className="text-base font-black text-slate-800 flex items-center gap-2">
-                  <Link2 className="w-5 h-5 text-blue-500" /> Connect Google Spreadsheet
+                <h2 className="text-base font-extrabold text-ink flex items-center gap-2">
+                  <Link2 className="w-5 h-5 text-brand" /> Connect Google Spreadsheet
                 </h2>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-quill mt-1">
                   Link your Google Sheets spreadsheet to sync invoices. Paste the full URL below and click "Fetch Sheets" to connect.
                 </p>
               </div>
 
               {/* Spreadsheet URL Input */}
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-bold text-quill uppercase tracking-wider mb-2">
                   Spreadsheet URL or ID
                 </label>
                 <div className="flex gap-3">
@@ -387,13 +387,13 @@ export default function Settings({ user, token, onClose, onSettingsSaved }: Sett
                     type="text"
                     value={spreadsheetUrl}
                     onChange={(e) => setSpreadsheetUrl(e.target.value)}
-                    className="flex-1 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none transition-all text-sm"
+                    className="flex-1 bg-mist border border-hairline focus:bg-shell focus:bg-mist-2 rounded-xl px-4 py-3 text-ink placeholder:text-quill-soft focus:outline-none transition-all text-sm"
                     placeholder="https://docs.google.com/spreadsheets/d/your-spreadsheet-id/edit"
                   />
                   <button
                     onClick={handleFetchSpreadsheet}
                     disabled={verifying || !spreadsheetUrl.trim()}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-white px-5 py-3 rounded-xl text-xs font-bold transition-colors shadow-sm"
+                    className="flex items-center gap-2 bg-brand hover:bg-brand-mid disabled:opacity-50 disabled:cursor-not-allowed text-white px-5 py-3 rounded-xl text-xs font-bold transition-colors shadow-sm"
                   >
                     {verifying ? (
                       <>
@@ -408,7 +408,7 @@ export default function Settings({ user, token, onClose, onSettingsSaved }: Sett
                     )}
                   </button>
                 </div>
-                <p className="text-xs text-slate-400 mt-2">
+                <p className="text-xs text-quill-soft mt-2">
                   If your session has expired, clicking "Fetch Sheets" will automatically re-authenticate with Google.
                 </p>
               </div>
@@ -424,13 +424,13 @@ export default function Settings({ user, token, onClose, onSettingsSaved }: Sett
               {/* Sheet Selection */}
               {availableSheets.length > 0 && (
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-quill uppercase tracking-wider mb-2">
                     Select Sheet Tab
                   </label>
                   <select
                     value={sheetName}
                     onChange={(e) => setSheetName(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-4 py-3 text-slate-800 focus:outline-none transition-all text-sm cursor-pointer"
+                    className="w-full bg-mist border border-hairline focus:bg-shell focus:bg-mist-2 rounded-xl px-4 py-3 text-ink focus:outline-none transition-all text-sm cursor-pointer"
                   >
                     {availableSheets.map((sheet) => (
                       <option key={sheet} value={sheet}>
@@ -438,7 +438,7 @@ export default function Settings({ user, token, onClose, onSettingsSaved }: Sett
                       </option>
                     ))}
                   </select>
-                  <p className="text-xs text-slate-400 mt-2">
+                  <p className="text-xs text-quill-soft mt-2">
                     Choose the sheet tab that contains your invoice data.
                   </p>
                 </div>
@@ -447,25 +447,25 @@ export default function Settings({ user, token, onClose, onSettingsSaved }: Sett
               {/* Manual Sheet Name (fallback if no sheets fetched) */}
               {availableSheets.length === 0 && spreadsheetId && (
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-quill uppercase tracking-wider mb-2">
                     Sheet Name (Tab)
                   </label>
                   <input
                     type="text"
                     value={sheetName}
                     onChange={(e) => setSheetName(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none transition-all text-sm"
+                    className="w-full bg-mist border border-hairline focus:bg-shell focus:bg-mist-2 rounded-xl px-4 py-3 text-ink placeholder:text-quill-soft focus:outline-none transition-all text-sm"
                     placeholder="e.g. Sheet1, Invoices"
                   />
                 </div>
               )}
 
               {/* Save Button */}
-              <div className="flex justify-end pt-4 border-t border-slate-100">
+              <div className="flex justify-end pt-4 border-t border-hairline">
                 <button
                   onClick={handleSaveSpreadsheet}
                   disabled={saving || !spreadsheetId || !sheetName}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl text-sm font-black transition-all shadow-md shadow-blue-100"
+                  className="flex items-center gap-2 bg-brand hover:bg-brand-mid disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl text-sm font-extrabold transition-all shadow-md"
                 >
                   <Save className="w-4 h-4" />
                   {saving ? 'Saving...' : 'Save & Connect'}
@@ -477,35 +477,35 @@ export default function Settings({ user, token, onClose, onSettingsSaved }: Sett
 
         {activeTab === 'template' && (
           <div className="space-y-6 animate-fade-in">
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 lg:p-8 space-y-8">
+            <div className="bg-shell rounded-[26px] border border-hairline shadow-sm p-6 lg:p-8 space-y-8">
               {/* Company Info */}
               <div className="space-y-6">
-                <h2 className="text-base font-black text-slate-800 flex items-center gap-2">
-                  <Building2 className="w-5 h-5 text-blue-500" /> Company Information
+                <h2 className="text-base font-extrabold text-ink flex items-center gap-2">
+                  <Building2 className="w-5 h-5 text-brand" /> Company Information
                 </h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                    <label className="block text-xs font-bold text-quill uppercase tracking-wider mb-2">
                       Company / Business Name
                     </label>
                     <input
                       type="text"
                       value={companyName}
                       onChange={(e) => setCompanyName(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none transition-all text-sm"
+                      className="w-full bg-mist border border-hairline focus:bg-shell focus:bg-mist-2 rounded-xl px-4 py-3 text-ink placeholder:text-quill-soft focus:outline-none transition-all text-sm"
                       placeholder="e.g. FAIZ GROUP"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                    <label className="block text-xs font-bold text-quill uppercase tracking-wider mb-2">
                       Default Hotel Name
                     </label>
                     <input
                       type="text"
                       value={defaultHotelName}
                       onChange={(e) => setDefaultHotelName(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none transition-all text-sm"
+                      className="w-full bg-mist border border-hairline focus:bg-shell focus:bg-mist-2 rounded-xl px-4 py-3 text-ink placeholder:text-quill-soft focus:outline-none transition-all text-sm"
                       placeholder="e.g. FAIZ GROUP HOTEL"
                     />
                   </div>
@@ -513,7 +513,7 @@ export default function Settings({ user, token, onClose, onSettingsSaved }: Sett
 
                 {/* Logo Upload */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-quill uppercase tracking-wider mb-2">
                     Company Logo
                   </label>
                   <div className="flex items-start gap-4">
@@ -522,7 +522,7 @@ export default function Settings({ user, token, onClose, onSettingsSaved }: Sett
                         <img
                           src={companyLogo}
                           alt="Company Logo"
-                          className="w-24 h-24 object-contain border border-slate-200 rounded-xl bg-white p-2"
+                          className="w-24 h-24 object-contain border border-hairline rounded-xl bg-shell p-2"
                         />
                         <button
                           onClick={() => setCompanyLogo('')}
@@ -532,7 +532,7 @@ export default function Settings({ user, token, onClose, onSettingsSaved }: Sett
                         </button>
                       </div>
                     ) : (
-                      <div className="w-24 h-24 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center text-slate-400">
+                      <div className="w-24 h-24 border-2 border-dashed border-hairline rounded-xl flex items-center justify-center text-quill-soft">
                         <Upload className="w-6 h-6" />
                       </div>
                     )}
@@ -541,29 +541,29 @@ export default function Settings({ user, token, onClose, onSettingsSaved }: Sett
                         type="file"
                         accept="image/*"
                         onChange={handleLogoUpload}
-                        className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100 cursor-pointer"
+                        className="block w-full text-sm text-quill file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-brand-pale file:text-brand hover:file:bg-blue-100 cursor-pointer"
                       />
-                      <p className="text-xs text-slate-400 mt-1">PNG, JPG, or SVG. Max 2MB.</p>
+                      <p className="text-xs text-quill-soft mt-1">PNG, JPG, or SVG. Max 2MB.</p>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Currency & Tax */}
-              <div className="space-y-6 border-t border-slate-100 pt-6">
-                <h2 className="text-base font-black text-slate-800 flex items-center gap-2">
+              <div className="space-y-6 border-t border-hairline pt-6">
+                <h2 className="text-base font-extrabold text-ink flex items-center gap-2">
                   <CreditCard className="w-5 h-5 text-emerald-500" /> Payment & Currency
                 </h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                    <label className="block text-xs font-bold text-quill uppercase tracking-wider mb-2">
                       Currency
                     </label>
                     <select
                       value={currency}
                       onChange={(e) => setCurrency(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-4 py-3 text-slate-800 focus:outline-none transition-all text-sm"
+                      className="w-full bg-mist border border-hairline focus:bg-shell focus:bg-mist-2 rounded-xl px-4 py-3 text-ink focus:outline-none transition-all text-sm"
                     >
                       <option value="USD">USD ($)</option>
                       <option value="EUR">EUR (€)</option>
@@ -575,13 +575,13 @@ export default function Settings({ user, token, onClose, onSettingsSaved }: Sett
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                    <label className="block text-xs font-bold text-quill uppercase tracking-wider mb-2">
                       Timezone
                     </label>
                     <select
                       value={timezone}
                       onChange={(e) => setTimezone(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-4 py-3 text-slate-800 focus:outline-none transition-all text-sm"
+                      className="w-full bg-mist border border-hairline focus:bg-shell focus:bg-mist-2 rounded-xl px-4 py-3 text-ink focus:outline-none transition-all text-sm"
                     >
                       <option value="UTC">UTC (Coordinated Universal Time)</option>
                       <option value="Asia/Karachi">Asia/Karachi (PKT, UTC+5)</option>
@@ -599,7 +599,7 @@ export default function Settings({ user, token, onClose, onSettingsSaved }: Sett
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                    <label className="block text-xs font-bold text-quill uppercase tracking-wider mb-2">
                       Tax Rate (%)
                     </label>
                     <input
@@ -609,65 +609,65 @@ export default function Settings({ user, token, onClose, onSettingsSaved }: Sett
                       step="0.5"
                       value={taxRate}
                       onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
-                      className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none transition-all text-sm"
+                      className="w-full bg-mist border border-hairline focus:bg-shell focus:bg-mist-2 rounded-xl px-4 py-3 text-ink placeholder:text-quill-soft focus:outline-none transition-all text-sm"
                       placeholder="0"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-quill uppercase tracking-wider mb-2">
                     Default Payment Details / Banking Info
                   </label>
                   <textarea
                     value={paymentDetails}
                     onChange={(e) => setPaymentDetails(e.target.value)}
                     rows={4}
-                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none transition-all text-sm font-mono leading-relaxed"
+                    className="w-full bg-mist border border-hairline focus:bg-shell focus:bg-mist-2 rounded-xl px-4 py-3 text-ink placeholder:text-quill-soft focus:outline-none transition-all text-sm font-mono leading-relaxed"
                     placeholder="Beneficiaire Bank of America&#10;Swift Sort&#10;Account No.: 324 6654 7766 9992"
                   />
                 </div>
               </div>
 
               {/* Terms & Conditions */}
-              <div className="space-y-6 border-t border-slate-100 pt-6">
-                <h2 className="text-base font-black text-slate-800 flex items-center gap-2">
+              <div className="space-y-6 border-t border-hairline pt-6">
+                <h2 className="text-base font-extrabold text-ink flex items-center gap-2">
                   <FileText className="w-5 h-5 text-violet-500" /> Terms & Conditions
                 </h2>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-quill uppercase tracking-wider mb-2">
                     Terms & Conditions (shown on invoice)
                   </label>
                   <textarea
                     value={termsAndConditions}
                     onChange={(e) => setTermsAndConditions(e.target.value)}
                     rows={5}
-                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none transition-all text-sm leading-relaxed"
+                    className="w-full bg-mist border border-hairline focus:bg-shell focus:bg-mist-2 rounded-xl px-4 py-3 text-ink placeholder:text-quill-soft focus:outline-none transition-all text-sm leading-relaxed"
                     placeholder="Payment is due within 30 days of invoice date.&#10;Late payments may incur additional charges."
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-quill uppercase tracking-wider mb-2">
                     Default Notes (pre-filled on new invoices)
                   </label>
                   <textarea
                     value={defaultNotes}
                     onChange={(e) => setDefaultNotes(e.target.value)}
                     rows={3}
-                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none transition-all text-sm leading-relaxed"
+                    className="w-full bg-mist border border-hairline focus:bg-shell focus:bg-mist-2 rounded-xl px-4 py-3 text-ink placeholder:text-quill-soft focus:outline-none transition-all text-sm leading-relaxed"
                     placeholder="Additional notes that appear on every invoice..."
                   />
                 </div>
               </div>
 
               {/* Save Button */}
-              <div className="flex justify-end pt-4 border-t border-slate-100">
+              <div className="flex justify-end pt-4 border-t border-hairline">
                 <button
                   onClick={handleSaveTemplate}
                   disabled={saving}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-6 py-3 rounded-xl text-sm font-black transition-all shadow-md shadow-blue-100"
+                  className="flex items-center gap-2 bg-brand hover:bg-brand-mid disabled:bg-blue-400 text-white px-6 py-3 rounded-xl text-sm font-extrabold transition-all shadow-md"
                 >
                   <Save className="w-4 h-4" />
                   {saving ? 'Saving...' : 'Save Template Settings'}
