@@ -2,18 +2,30 @@ import React, { useState, useEffect } from 'react';
 import { Invoice, BookingItem, PaymentRecord } from '../types';
 import { InvoiceTemplate, getCurrencySymbol } from '../lib/settings';
 import { getTodayInTimezone } from '../lib/timezone';
-import { Plus, Trash2, ArrowLeft, Save, Sparkles, Calendar } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, Save, Sparkles } from 'lucide-react';
 
 interface InvoiceFormProps {
-  invoice?: Invoice; // If passed, we are in EDIT mode
+  invoice?: Invoice;
   onSave: (invoiceData: Omit<Invoice, 'rowIndex' | 'rawRow'> & { rowIndex?: number }) => Promise<void>;
   onCancel: () => void;
   suggestInvoiceId?: string;
-  template?: InvoiceTemplate | null; // Template settings from Supabase
+  template?: InvoiceTemplate | null;
 }
 
+type FormStatus = 'Paid' | 'Due' | 'Unpaid' | 'Pending' | 'Overdue';
+
+const fieldClass =
+  'w-full bg-mist hover:bg-mist-2 focus:bg-mist-2 rounded-2xl px-4 py-3.5 text-[13px] font-semibold text-ink placeholder:text-quill-soft placeholder:font-medium outline-none transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-55 disabled:pointer-events-none';
+
+const cellClass =
+  'w-full bg-mist hover:bg-mist-2 focus:bg-shell rounded-xl px-3 py-2 text-[12px] font-semibold text-ink placeholder:text-quill-soft outline-none transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand';
+
+const labelClass = 'block text-[10px] font-bold text-quill-soft uppercase tracking-wider mb-2';
+
+const money = (n: number) =>
+  n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 export default function InvoiceForm({ invoice, onSave, onCancel, suggestInvoiceId, template }: InvoiceFormProps) {
-  // Get currency symbol from template settings
   const currencySymbol = getCurrencySymbol(template?.currency || 'USD');
 
   const [id, setId] = useState('');
@@ -23,7 +35,7 @@ export default function InvoiceForm({ invoice, onSave, onCancel, suggestInvoiceI
   const [hotelName, setHotelName] = useState('');
   const [amountPaid, setAmountPaid] = useState<number>(0);
   const [paymentDate, setPaymentDate] = useState('');
-  const [status, setStatus] = useState<'Paid' | 'Unpaid' | 'Pending' | 'Overdue'>('Pending');
+  const [status, setStatus] = useState<FormStatus>('Pending');
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<BookingItem[]>([
     { roomType: '', quantity: 1, checkIn: '', checkOut: '', nights: 1, price: 0, total: 0 }
@@ -33,10 +45,9 @@ export default function InvoiceForm({ invoice, onSave, onCancel, suggestInvoiceI
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Use template payment details if available, otherwise use hardcoded default
-  const defaultNotes = template?.paymentDetails || `Beneficiaire Bank of America\nSwift Sort\nAccount No.: 324 6654 7766 9992`;
+  const defaultNotes =
+    template?.paymentDetails || `Beneficiary: Bank of America\nSwift Sort\nAccount No.: 324 6654 7766 9992`;
 
-  // Load existing invoice data if in EDIT mode
   useEffect(() => {
     if (invoice) {
       setId(invoice.id);
@@ -48,10 +59,13 @@ export default function InvoiceForm({ invoice, onSave, onCancel, suggestInvoiceI
       setPaymentDate(invoice.paymentDate || invoice.date);
       setStatus(invoice.status);
       setNotes(invoice.notes);
-      setItems(invoice.items.length > 0 ? invoice.items : [{ roomType: '', quantity: 1, checkIn: '', checkOut: '', nights: 1, price: 0, total: 0 }]);
+      setItems(
+        invoice.items.length > 0
+          ? invoice.items
+          : [{ roomType: '', quantity: 1, checkIn: '', checkOut: '', nights: 1, price: 0, total: 0 }]
+      );
       setSubtotal(invoice.totalAmount);
 
-      // Load payments
       let initialPayments = invoice.payments || [];
       if (initialPayments.length === 0 && invoice.amountPaid > 0) {
         initialPayments = [{ amount: invoice.amountPaid, date: invoice.paymentDate || invoice.date }];
@@ -61,9 +75,8 @@ export default function InvoiceForm({ invoice, onSave, onCancel, suggestInvoiceI
       }
       setPayments(initialPayments);
     } else {
-      // Create mode - use template defaults from Supabase settings
       const today = getTodayInTimezone(template?.timezone || 'UTC');
-      setId(suggestInvoiceId || `Z${Math.floor(1 + Math.random() * 99)}`);
+      setId(suggestInvoiceId || `INV-${Math.floor(1000 + Math.random() * 9000)}`);
       setDate(today);
       setCustomerName('');
       setCustomerEmail('');
@@ -71,10 +84,18 @@ export default function InvoiceForm({ invoice, onSave, onCancel, suggestInvoiceI
       setAmountPaid(0);
       setPaymentDate(today);
       setStatus('Due');
-      // Use template payment details or default notes from template
-      const notesValue = template?.paymentDetails || template?.defaultNotes || defaultNotes;
-      setNotes(notesValue);
-      setItems([{ roomType: 'AVG 4.5', quantity: 1, checkIn: today, checkOut: getNextDayStr(today), nights: 1, price: 50.00, total: 50.00 }]);
+      setNotes(template?.paymentDetails || template?.defaultNotes || defaultNotes);
+      setItems([
+        {
+          roomType: 'AVG 4.5',
+          quantity: 1,
+          checkIn: today,
+          checkOut: getNextDayStr(today),
+          nights: 1,
+          price: 50.0,
+          total: 50.0
+        }
+      ]);
       setPayments([{ amount: 0, date: today }]);
     }
   }, [invoice, suggestInvoiceId, template]);
@@ -89,7 +110,6 @@ export default function InvoiceForm({ invoice, onSave, onCancel, suggestInvoiceI
     }
   }
 
-  // Calculate nights difference between check-in and check-out
   const calculateNights = (checkInStr: string, checkOutStr: string): number => {
     if (!checkInStr || !checkOutStr) return 1;
     try {
@@ -103,24 +123,19 @@ export default function InvoiceForm({ invoice, onSave, onCancel, suggestInvoiceI
     }
   };
 
-  // Handle dynamic subtotal calculation whenever booking items change
   useEffect(() => {
-    const calculatedSubtotal = items.reduce((acc, curr) => acc + (curr.quantity * curr.nights * curr.price), 0);
+    const calculatedSubtotal = items.reduce((acc, curr) => acc + curr.quantity * curr.nights * curr.price, 0);
     setSubtotal(calculatedSubtotal);
   }, [items]);
 
-  // Sync total amount paid and main payment date from payments array
   useEffect(() => {
     const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
     setAmountPaid(totalPaid);
-    
-    const firstDate = payments.find(p => p.date)?.date;
-    if (firstDate) {
-      setPaymentDate(firstDate);
-    }
+
+    const firstDate = payments.find((p) => p.date)?.date;
+    if (firstDate) setPaymentDate(firstDate);
   }, [payments]);
 
-  // Auto transition status based on balance
   useEffect(() => {
     const currentBalance = subtotal - amountPaid;
     if (currentBalance <= 0) {
@@ -130,7 +145,6 @@ export default function InvoiceForm({ invoice, onSave, onCancel, suggestInvoiceI
     }
   }, [subtotal, amountPaid, status]);
 
-  // Handle multi-payment actions
   const handleAddPayment = () => {
     const today = getTodayInTimezone(template?.timezone || 'UTC');
     setPayments([...payments, { amount: 0, date: today }]);
@@ -153,7 +167,6 @@ export default function InvoiceForm({ invoice, onSave, onCancel, suggestInvoiceI
     setPayments(updated);
   };
 
-  // Handle item cell updates
   const handleItemChange = (index: number, field: keyof BookingItem, value: any) => {
     const updated = [...items];
     const currentItem = { ...updated[index] };
@@ -181,26 +194,37 @@ export default function InvoiceForm({ invoice, onSave, onCancel, suggestInvoiceI
 
   const addItemRow = () => {
     const today = getTodayInTimezone(template?.timezone || 'UTC');
-    setItems([...items, { roomType: 'AVG 4.5', quantity: 1, checkIn: today, checkOut: getNextDayStr(today), nights: 1, price: 50.00, total: 50.00 }]);
+    setItems([
+      ...items,
+      {
+        roomType: 'AVG 4.5',
+        quantity: 1,
+        checkIn: today,
+        checkOut: getNextDayStr(today),
+        nights: 1,
+        price: 50.0,
+        total: 50.0
+      }
+    ]);
   };
 
   const removeItemRow = (index: number) => {
-    if (items.length === 1) return; // Keep at least one booking item
+    if (items.length === 1) return;
     setItems(items.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id.trim()) {
-      setError('Invoice ID is required');
+      setError('An invoice number is required before saving.');
       return;
     }
     if (!customerName.trim()) {
-      setError('Guest name is required');
+      setError('Add the guest name so the invoice can be addressed.');
       return;
     }
-    if (items.some(item => !item.roomType.trim())) {
-      setError('All booking lines must specify a Room or Room Type');
+    if (items.some((item) => !item.roomType.trim())) {
+      setError('Every booking line needs a room or room type.');
       return;
     }
 
@@ -217,261 +241,255 @@ export default function InvoiceForm({ invoice, onSave, onCancel, suggestInvoiceI
         customerEmail: customerEmail.trim(),
         hotelName: hotelName.trim(),
         totalAmount: subtotal,
-        amountPaid: amountPaid,
+        amountPaid,
         paymentDate: paymentDate || date,
         balance: balanceValue,
         status,
         notes: notes.trim(),
-        items: items.map(item => ({
+        items: items.map((item) => ({
           ...item,
           total: item.quantity * item.nights * item.price
         })),
-        payments: payments.filter(p => p.amount > 0 || p.date)
+        payments: payments.filter((p) => p.amount > 0 || p.date)
       });
     } catch (err: any) {
       console.error('Save error:', err);
-      setError(err.message || 'Failed to save booking invoice to Google Sheets');
+      setError(err.message || 'We could not save this invoice. Please try again.');
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Populate exactly the data shown in the user's screenshot!
   const generateSampleItems = () => {
     setId('Z5');
     setDate('2026-07-18');
     setCustomerName('FAIZ');
-    setCustomerEmail('Albert@invoicefly.com');
-    setAmountPaid(600.00);
-    setPaymentDate('2026-07-18');
+    setCustomerEmail('albert@invoicefly.com');
     setStatus('Pending');
     setNotes(defaultNotes);
     setItems([
-      { roomType: 'AVG 4.5', quantity: 4, checkIn: '2026-07-18', checkOut: '2026-07-20', nights: 2, price: 50.00, total: 400.00 },
-      { roomType: 'AVG 4.5', quantity: 4, checkIn: '2026-07-18', checkOut: '2026-07-22', nights: 4, price: 75.00, total: 1200.00 }
+      { roomType: 'AVG 4.5', quantity: 4, checkIn: '2026-07-18', checkOut: '2026-07-20', nights: 2, price: 50.0, total: 400.0 },
+      { roomType: 'AVG 4.5', quantity: 4, checkIn: '2026-07-18', checkOut: '2026-07-22', nights: 4, price: 75.0, total: 1200.0 }
     ]);
-    setPayments([{ amount: 600.00, date: '2026-07-18' }]);
+    setPayments([{ amount: 600.0, date: '2026-07-18' }]);
+  };
+
+  const balance = subtotal - amountPaid;
+
+  const statusTone = (s: FormStatus, active: boolean) => {
+    if (!active) return 'bg-mist text-quill hover:md:bg-mist-2';
+    switch (s) {
+      case 'Paid':
+        return 'bg-[#3f9c68] text-white';
+      case 'Due':
+      case 'Pending':
+        return 'bg-[#c98a2b] text-white';
+      case 'Unpaid':
+        return 'bg-[#c0453c] text-white';
+      default:
+        return 'bg-brand text-white';
+    }
   };
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-100 shadow-md p-6 lg:p-8 animate-fade-in" id="invoice-form-container">
-      {/* Form Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 border-b border-slate-100 pb-6">
+    <div className="bg-shell rounded-[26px] p-6 lg:p-8 shadow-[0_18px_40px_-32px_rgba(19,17,38,0.5)]" id="invoice-form-container">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8 pb-6 border-b border-hairline">
         <div>
-          <button 
-            type="button" 
+          <button
+            type="button"
             onClick={onCancel}
-            className="flex items-center gap-1.5 text-slate-500 hover:text-slate-800 text-sm font-medium mb-2 transition-colors"
+            className="flex items-center gap-1.5 text-quill hover:text-ink text-[12px] font-bold mb-3 transition-colors duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand rounded"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+            <ArrowLeft className="w-4 h-4" /> Back to invoices
           </button>
-          <h2 className="text-2xl font-bold text-slate-800">
-            {invoice ? `Edit Booking Invoice #${invoice.id}` : 'Create New Booking Invoice'}
+          <h2 className="text-[26px] leading-none font-extrabold tracking-tight text-ink font-display">
+            {invoice ? `Edit invoice #${invoice.id}` : 'Create an invoice'}
           </h2>
-          <p className="text-slate-400 text-sm mt-0.5">
-            Create hotel room booking invoices. Fully compatible with Google Sheets.
+          <p className="text-[12px] text-quill-soft font-medium mt-2">
+            Room bookings, payments and totals — synced to your database.
           </p>
         </div>
-        
+
         {!invoice && (
           <button
             type="button"
             onClick={generateSampleItems}
-            className="flex items-center gap-2 bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs font-semibold px-4 py-2.5 rounded-full border border-blue-100 transition-all shadow-sm"
+            className="flex items-center gap-2 bg-brand-pale text-brand hover:bg-[#e6e2fd] text-[12px] font-bold px-4 py-3 rounded-full transition-colors duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
-            <Sparkles className="w-3.5 h-3.5" /> Fill Spreadsheet Sample
+            <Sparkles className="w-3.5 h-3.5" /> Fill sample booking
           </button>
         )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {error && (
-          <div className="bg-red-50 text-red-600 border border-red-100 p-4 rounded-2xl text-sm font-medium">
-            {error}
-          </div>
+          <div className="bg-[#fdeeea] text-[#a8492f] p-4 rounded-[18px] text-[12px] font-bold">{error}</div>
         )}
 
-        {/* 1. Basic Info Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Invoice identity */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-              Invoice No / Number *
-            </label>
+            <label htmlFor="inv-id" className={labelClass}>Invoice number</label>
             <input
+              id="inv-id"
               type="text"
               required
               disabled={!!invoice}
               value={id}
               onChange={(e) => setId(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none transition-all text-sm disabled:opacity-60 font-semibold"
-              placeholder="e.g. Z5"
+              className={fieldClass}
+              placeholder="e.g. INV-1003"
             />
           </div>
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-              Invoice Date *
-            </label>
+            <label htmlFor="inv-date" className={labelClass}>Invoice date</label>
             <input
+              id="inv-date"
               type="date"
               required
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none transition-all text-sm"
+              className={fieldClass}
             />
           </div>
         </div>
 
-        {/* 2. Guest Information */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+        {/* Guest */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-              Guest / Customer Name *
-            </label>
+            <label htmlFor="inv-guest" className={labelClass}>Guest name</label>
             <input
+              id="inv-guest"
               type="text"
               required
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none transition-all text-sm"
-              placeholder="e.g. FAIZ"
+              className={fieldClass}
+              placeholder="e.g. James Carter"
             />
           </div>
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-              Guest Email Address
-            </label>
+            <label htmlFor="inv-email" className={labelClass}>Guest email</label>
             <input
+              id="inv-email"
               type="email"
               value={customerEmail}
               onChange={(e) => setCustomerEmail(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none transition-all text-sm"
-              placeholder="e.g. Albert@invoicefly.com"
+              className={fieldClass}
+              placeholder="e.g. james@brightwave.com"
             />
           </div>
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-              Hotel Name
-            </label>
+            <label htmlFor="inv-hotel" className={labelClass}>Property / company</label>
             <input
+              id="inv-hotel"
               type="text"
               value={hotelName}
               onChange={(e) => setHotelName(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none transition-all text-sm"
-              placeholder="e.g. FAIZ GROUP HOTEL"
+              className={fieldClass}
+              placeholder="e.g. BrightWave Suites"
             />
           </div>
         </div>
 
-        {/* 3. Booking Lines / Room Inventory */}
-        <div className="pt-4">
+        {/* Booking lines */}
+        <div>
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
-              Room Booking Details
-            </h3>
+            <h3 className="text-[15px] font-extrabold text-ink font-display">Room bookings</h3>
             <button
               type="button"
               onClick={addItemRow}
-              className="flex items-center gap-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs font-bold px-3 py-2 rounded-lg transition-colors border border-blue-100"
+              className="flex items-center gap-1.5 bg-brand-pale text-brand hover:bg-[#e6e2fd] text-[11px] font-bold px-3.5 py-2.5 rounded-full transition-colors duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
-              <Plus className="w-3.5 h-3.5" /> Add Room Booking
+              <Plus className="w-3.5 h-3.5" /> Add booking line
             </button>
           </div>
 
-          <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+          <div className="bg-mist rounded-[20px] overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[900px] text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100 text-slate-500">
-                    <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider w-1/4">Room / Room Type</th>
-                    <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider w-20 text-center">Qty</th>
-                    <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-center">Check-In</th>
-                    <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-center">Check-Out</th>
-                    <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider w-20 text-center">Nights</th>
-                    <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider w-28 text-right">Price ({currencySymbol}/Night)</th>
-                    <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider w-28 text-right">Total ({currencySymbol})</th>
-                    <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider w-10 text-center"></th>
+                  <tr className="text-quill">
+                    <th className="py-3.5 px-4 text-[10px] font-bold uppercase tracking-wider w-1/4">Room type</th>
+                    <th className="py-3.5 px-4 text-[10px] font-bold uppercase tracking-wider w-20 text-center">Qty</th>
+                    <th className="py-3.5 px-4 text-[10px] font-bold uppercase tracking-wider text-center">Check-in</th>
+                    <th className="py-3.5 px-4 text-[10px] font-bold uppercase tracking-wider text-center">Check-out</th>
+                    <th className="py-3.5 px-4 text-[10px] font-bold uppercase tracking-wider w-20 text-center">Nights</th>
+                    <th className="py-3.5 px-4 text-[10px] font-bold uppercase tracking-wider w-28 text-right">Rate</th>
+                    <th className="py-3.5 px-4 text-[10px] font-bold uppercase tracking-wider w-32 text-right">Amount</th>
+                    <th className="py-3.5 px-4 w-12" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody>
                   {items.map((item, index) => (
-                    <tr key={index} className="hover:bg-slate-50/50 transition-colors">
-                      {/* Room Type */}
+                    <tr key={index} className="bg-shell border-t-4 border-mist">
                       <td className="p-3">
                         <input
                           type="text"
                           required
+                          aria-label={`Room type for line ${index + 1}`}
                           value={item.roomType}
                           onChange={(e) => handleItemChange(index, 'roomType', e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-lg px-2.5 py-1.5 text-slate-800 placeholder-slate-400 text-sm focus:outline-none transition-all"
-                          placeholder="e.g. AVG 4.5, Suite"
+                          className={cellClass}
+                          placeholder="e.g. Deluxe suite"
                         />
                       </td>
-
-                      {/* Quantity */}
-                      <td className="p-3 text-center">
+                      <td className="p-3">
                         <input
                           type="number"
                           required
                           min="1"
+                          aria-label={`Quantity for line ${index + 1}`}
                           value={item.quantity}
                           onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                          className="w-16 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-lg px-2 py-1.5 text-center text-slate-800 text-sm focus:outline-none transition-all"
+                          className={`${cellClass} nums text-center`}
                         />
                       </td>
-
-                      {/* Check-In */}
-                      <td className="p-3 text-center">
+                      <td className="p-3">
                         <input
                           type="date"
                           required
+                          aria-label={`Check-in for line ${index + 1}`}
                           value={item.checkIn}
                           onChange={(e) => handleItemChange(index, 'checkIn', e.target.value)}
-                          className="bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-lg px-2 py-1.5 text-slate-800 text-sm focus:outline-none transition-all"
+                          className={`${cellClass} nums`}
                         />
                       </td>
-
-                      {/* Check-Out */}
-                      <td className="p-3 text-center">
+                      <td className="p-3">
                         <input
                           type="date"
                           required
+                          aria-label={`Check-out for line ${index + 1}`}
                           value={item.checkOut}
                           onChange={(e) => handleItemChange(index, 'checkOut', e.target.value)}
-                          className="bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-lg px-2 py-1.5 text-slate-800 text-sm focus:outline-none transition-all"
+                          className={`${cellClass} nums`}
                         />
                       </td>
-
-                      {/* Nights */}
-                      <td className="p-3 text-center font-mono font-bold text-slate-700">
-                        {item.nights}
-                      </td>
-
-                      {/* Price per night */}
+                      <td className="nums p-3 text-center text-[13px] font-bold text-ink">{item.nights}</td>
                       <td className="p-3">
                         <input
                           type="number"
                           required
                           min="0"
                           step="0.01"
+                          aria-label={`Nightly rate for line ${index + 1}`}
                           value={item.price || ''}
                           onChange={(e) => handleItemChange(index, 'price', e.target.value)}
-                          className="w-24 ml-auto bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-lg px-2.5 py-1.5 text-right text-slate-800 text-sm focus:outline-none transition-all"
+                          className={`${cellClass} nums text-right`}
                           placeholder="0.00"
                         />
                       </td>
-
-                      {/* Total line item amount */}
-                      <td className="p-3 text-right font-bold text-slate-800 text-sm pr-4 font-mono">
-                        {currencySymbol}{(item.quantity * item.nights * item.price).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      <td className="nums p-3 text-right text-[13px] font-bold text-ink pr-4">
+                        {currencySymbol}{money(item.quantity * item.nights * item.price)}
                       </td>
-
-                      {/* Remove action */}
                       <td className="p-3 text-center">
                         <button
                           type="button"
                           onClick={() => removeItemRow(index)}
                           disabled={items.length === 1}
-                          className="text-slate-400 hover:text-red-500 disabled:opacity-40 transition-colors p-1.5 rounded-lg hover:bg-red-50"
+                          title="Remove line"
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-quill hover:text-[#c0453c] hover:bg-[#fdeeea] disabled:opacity-40 disabled:pointer-events-none transition-colors duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -484,34 +502,18 @@ export default function InvoiceForm({ invoice, onSave, onCancel, suggestInvoiceI
           </div>
         </div>
 
-        {/* 4. Totals, Paid Status and Banking Details */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-4 border-t border-slate-100">
-          
-          {/* Notes & Status */}
+        {/* Status, notes and totals */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-7 pt-2">
           <div className="lg:col-span-2 space-y-6">
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                Booking Invoice Status
-              </label>
+              <span className={labelClass}>Invoice status</span>
               <div className="flex flex-wrap gap-2">
                 {(['Paid', 'Due', 'Unpaid', 'Pending', 'Overdue'] as const).map((s) => (
                   <button
                     key={s}
                     type="button"
                     onClick={() => setStatus(s)}
-                    className={`px-4 py-2 rounded-full text-xs font-bold border transition-all ${
-                      status === s
-                        ? s === 'Paid'
-                          ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm'
-                          : s === 'Due'
-                          ? 'bg-amber-500 border-amber-500 text-white shadow-sm'
-                          : s === 'Unpaid'
-                          ? 'bg-red-500 border-red-500 text-white shadow-sm'
-                          : s === 'Pending'
-                          ? 'bg-amber-500 border-amber-500 text-white shadow-sm'
-                          : 'bg-violet-500 border-violet-500 text-white shadow-sm'
-                        : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
-                    }`}
+                    className={`px-4 py-2.5 rounded-full text-[11px] font-bold transition-colors duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${statusTone(s, status === s)}`}
                   >
                     {s}
                   </button>
@@ -520,82 +522,86 @@ export default function InvoiceForm({ invoice, onSave, onCancel, suggestInvoiceI
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                Payment Information & Banking details
-              </label>
+              <label htmlFor="inv-notes" className={labelClass}>Payment &amp; banking details</label>
               <textarea
+                id="inv-notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={4}
-                className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none transition-all text-sm font-mono leading-relaxed"
+                className={`${fieldClass} font-mono text-[12px] leading-relaxed`}
                 placeholder={defaultNotes}
               />
             </div>
           </div>
 
-          {/* Pricing Totals Box */}
-          <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-4">
-            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider pb-2 border-b border-slate-200">
-              Booking Receipt Totals
-            </h4>
+          {/* Totals card */}
+          <div className="bg-mist p-5 rounded-[22px] space-y-4">
+            <h4 className="text-[13px] font-extrabold text-ink font-display">Receipt totals</h4>
 
-            {/* Total Gross Amount */}
-            <div className="flex items-center justify-between text-sm text-slate-600">
-              <span className="font-semibold text-slate-700">Total Gross Amount ({currencySymbol})</span>
+            <div className="flex items-center justify-between gap-3">
+              <label htmlFor="inv-gross" className="text-[11px] font-bold text-quill">
+                Gross amount
+              </label>
               <input
+                id="inv-gross"
                 type="number"
                 min="0"
                 step="0.01"
                 value={subtotal || ''}
                 onChange={(e) => setSubtotal(Math.max(0, parseFloat(e.target.value) || 0))}
-                className="w-28 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-right text-xs focus:outline-none font-bold text-slate-800 font-mono"
+                className="nums w-28 bg-shell rounded-xl px-3 py-2 text-right text-[12px] font-bold text-ink outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
                 placeholder="0.00"
               />
             </div>
 
-            {/* Payments List */}
-            <div className="border-t border-slate-200/60 pt-3 space-y-3">
+            <div className="pt-3 border-t border-hairline space-y-3">
               <div className="flex justify-between items-center">
-                <span className="font-bold text-slate-700 text-xs uppercase tracking-wider">Payments History</span>
+                <span className="text-[10px] font-bold text-quill-soft uppercase tracking-wider">Payment history</span>
                 <button
                   type="button"
                   onClick={handleAddPayment}
-                  className="text-xs font-extrabold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 px-2.5 py-1.5 rounded-lg transition-colors border border-blue-100/50"
+                  className="flex items-center gap-1 text-[11px] font-bold text-brand hover:text-brand-mid bg-shell px-3 py-2 rounded-full transition-colors duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Add Payment Row
+                  <Plus className="w-3.5 h-3.5" /> Add
                 </button>
               </div>
 
-              <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
+              <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1">
                 {payments.map((p, idx) => (
-                  <div key={idx} className="flex gap-2 items-center bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm relative">
+                  <div key={idx} className="flex gap-2 items-end bg-shell p-2.5 rounded-[16px]">
                     <div className="flex-1">
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase mb-0.5">Amount Paid ({currencySymbol})</label>
+                      <label htmlFor={`pay-amt-${idx}`} className="block text-[9px] font-bold text-quill-soft uppercase tracking-wider mb-1">
+                        Amount
+                      </label>
                       <input
+                        id={`pay-amt-${idx}`}
                         type="number"
                         min="0"
                         step="0.01"
                         value={p.amount || ''}
                         onChange={(e) => handlePaymentChange(idx, 'amount', parseFloat(e.target.value) || 0)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-800 font-mono focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                        className="nums w-full bg-mist rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-ink outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
                         placeholder="0.00"
                       />
                     </div>
                     <div className="flex-1">
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase mb-0.5">Payment Date</label>
+                      <label htmlFor={`pay-date-${idx}`} className="block text-[9px] font-bold text-quill-soft uppercase tracking-wider mb-1">
+                        Date
+                      </label>
                       <input
+                        id={`pay-date-${idx}`}
                         type="date"
                         value={p.date}
                         onChange={(e) => handlePaymentChange(idx, 'date', e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                        className="nums w-full bg-mist rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-ink outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
                       />
                     </div>
                     {payments.length > 1 && (
                       <button
                         type="button"
                         onClick={() => handleRemovePayment(idx)}
-                        className="mt-4 p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors border border-transparent hover:border-rose-100"
-                        title="Remove Payment"
+                        title="Remove payment"
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-quill hover:text-[#c0453c] hover:bg-[#fdeeea] transition-colors duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -605,44 +611,46 @@ export default function InvoiceForm({ invoice, onSave, onCancel, suggestInvoiceI
               </div>
             </div>
 
-            {/* Total Paid Summary */}
-            <div className="flex justify-between items-center text-sm text-slate-600 border-t border-slate-200/60 pt-3">
-              <span className="font-bold text-slate-700">Total Amount Paid</span>
-              <span className="font-extrabold text-emerald-600 font-mono text-base">{currencySymbol}{amountPaid.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+            <div className="flex justify-between items-center pt-3 border-t border-hairline">
+              <span className="text-[11px] font-bold text-quill">Total paid</span>
+              <span className="nums text-[15px] font-extrabold text-[#3f9c68] font-display">
+                {currencySymbol}{money(amountPaid)}
+              </span>
             </div>
 
-            {/* Custom Balance Banner */}
-            <div className={`pt-3 border-t border-slate-200 flex justify-between items-center ${
-              subtotal - amountPaid === 0 ? 'bg-emerald-600' : subtotal - amountPaid < 0 ? 'bg-blue-600' : 'bg-red-600'
-            } text-white p-3 rounded-xl shadow-sm transition-colors duration-200`}>
-              <span className="text-xs font-black italic tracking-widest">
-                {subtotal - amountPaid < 0 ? 'CHANGE DUE' : subtotal - amountPaid === 0 ? 'PAID IN FULL' : 'BALANCE DUE'}
+            <div
+              className={`${
+                balance === 0 ? 'bg-[#3f9c68]' : balance < 0 ? 'bg-brand' : 'bg-[#c0453c]'
+              } text-white px-4 py-3.5 rounded-[16px] flex justify-between items-center`}
+            >
+              <span className="text-[10px] font-bold uppercase tracking-wider">
+                {balance < 0 ? 'Change due' : balance === 0 ? 'Paid in full' : 'Balance due'}
               </span>
-              <span className="text-lg font-black font-mono">
-                {subtotal - amountPaid < 0 
-                  ? `-${currencySymbol}${Math.abs(subtotal - amountPaid).toLocaleString(undefined, { maximumFractionDigits: 0 })}` 
-                  : `${currencySymbol}${(subtotal - amountPaid).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+              <span className="nums text-[16px] font-extrabold font-display">
+                {balance < 0
+                  ? `-${currencySymbol}${money(Math.abs(balance))}`
+                  : `${currencySymbol}${money(balance)}`}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Form Action Footer */}
-        <div className="flex justify-end gap-3 pt-6 border-t border-slate-100">
+        {/* Footer actions */}
+        <div className="flex justify-end gap-2.5 pt-6 border-t border-hairline">
           <button
             type="button"
             onClick={onCancel}
-            className="px-5 py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-bold transition-all"
+            className="px-5 py-3.5 rounded-full bg-mist hover:bg-mist-2 text-ink text-[12px] font-bold transition-colors duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
-            Cancel
+            Discard
           </button>
           <button
             type="submit"
             disabled={isSaving}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-6 py-3 rounded-xl text-sm font-black transition-all shadow-md shadow-blue-100"
+            className="flex items-center gap-2 bg-brand hover:bg-brand-mid disabled:opacity-60 disabled:pointer-events-none text-white px-6 py-3.5 rounded-full text-[12px] font-bold transition-colors duration-200 cursor-pointer shadow-[0_18px_34px_-20px_rgba(90,73,230,0.95)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             <Save className="w-4 h-4" />
-            {isSaving ? 'Syncing with Google Sheets...' : invoice ? 'Update Booking' : 'Register Booking'}
+            {isSaving ? 'Saving your invoice…' : invoice ? 'Update invoice' : 'Save invoice'}
           </button>
         </div>
       </form>
