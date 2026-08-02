@@ -631,6 +631,13 @@ ALTER TABLE user_settings DISABLE ROW LEVEL SECURITY;`;
               currencySymbol={currencySymbol}
               workspaceImage={WORKSPACE_IMAGE}
               onOpenLedger={() => setViewState('ledger')}
+              template={invoiceTemplate}
+              onCreateInvoice={() => {
+                setEditingInvoice(undefined);
+                setViewState('create');
+              }}
+              onSync={fetchInvoices}
+              loadingSync={loadingInvoices}
             />
 
             {/* Filter strip */}
