@@ -10,6 +10,10 @@ export interface InvoiceTemplate {
   currency: string;
   timezone: string;
   taxRate: number;
+  contactPhone: string;
+  contactEmail: string;
+  contactAddress: string;
+  tagline: string;
 }
 
 export interface SpreadsheetSettings {
@@ -41,6 +45,10 @@ const DEFAULT_TEMPLATE: InvoiceTemplate = {
   currency: "USD",
   timezone: "UTC",
   taxRate: 0,
+  contactPhone: "123-456-7890",
+  contactEmail: "billing@finnova.com",
+  contactAddress: "123 Anywhere St., Any City",
+  tagline: "Smart Finances, Better Business",
 };
 
 // Currency symbol mapping
