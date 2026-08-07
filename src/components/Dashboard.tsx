@@ -325,14 +325,14 @@ ALTER TABLE user_settings DISABLE ROW LEVEL SECURITY;`;
     new Set(invoices.map((inv) => inv.customerName).filter(Boolean))
   ).sort();
 
-  const months = [...new Set(
-    invoices
-      .map((inv) => {
-        const d = new Date(inv.date);
-        return isNaN(d.getTime()) ? '' : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      })
-      .filter((v): v is string => Boolean(v))
-  )].sort();
+  const monthsSet = new Set<string>();
+  invoices.forEach((inv) => {
+    const d = new Date(inv.date);
+    if (!isNaN(d.getTime())) {
+      monthsSet.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }
+  });
+  const months: string[] = Array.from(monthsSet).sort();
 
   const monthLabel = (key: string) => {
     const [y, m] = key.split('-');
@@ -747,7 +747,7 @@ ALTER TABLE user_settings DISABLE ROW LEVEL SECURITY;`;
                   {invoices.length} invoice{invoices.length === 1 ? '' : 's'} tracked
                 </span>
               </div>
-              <Charts invoices={invoices} />
+              <Charts invoices={invoices} currencyCode={invoiceTemplate?.currency || 'USD'} currencySymbol={currencySymbol} />
             </section>
 
             {/* Full ledger table */}
