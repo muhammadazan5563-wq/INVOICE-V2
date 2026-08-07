@@ -90,20 +90,20 @@ export default function InvoiceList({ invoices, onEdit, onDelete, onMarkAsPaid, 
     };
     forceResponsiveClasses(printContent);
 
-    // Add 4 empty rows to the booking table for print spacing
+    // Add 3 empty rows gap in the booking table for print
     const tableBody = printContent.querySelector('tbody');
     if (tableBody) {
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < 3; i++) {
         const emptyRow = document.createElement('tr');
         emptyRow.className = 'bg-shell border-t-4 border-mist';
         emptyRow.innerHTML = `
-          <td class="py-3.5 px-4">&nbsp;</td>
-          <td class="py-3.5 px-4">&nbsp;</td>
-          <td class="py-3.5 px-4">&nbsp;</td>
-          <td class="py-3.5 px-4">&nbsp;</td>
-          <td class="py-3.5 px-4">&nbsp;</td>
-          <td class="py-3.5 px-4">&nbsp;</td>
-          <td class="py-3.5 px-4">&nbsp;</td>
+          <td class="py-3.5 px-4"></td>
+          <td class="py-3.5 px-4"></td>
+          <td class="py-3.5 px-4"></td>
+          <td class="py-3.5 px-4"></td>
+          <td class="py-3.5 px-4"></td>
+          <td class="py-3.5 px-4"></td>
+          <td class="py-3.5 px-4"></td>
         `;
         tableBody.appendChild(emptyRow);
       }
@@ -206,13 +206,32 @@ export default function InvoiceList({ invoices, onEdit, onDelete, onMarkAsPaid, 
                 padding-bottom: 1.5rem !important;
               }
 
+              /* Footer positioning for print */
+              .invoice-print-body {
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                position: relative;
+              }
+              .invoice-print-body > *:last-child {
+                margin-top: auto !important;
+                padding-top: 2rem;
+              }
+
               @media print {
                 body { padding: 0; margin: 0; }
                 .invoice-print-body {
                   padding: 2rem;
+                  min-height: 100vh;
+                  display: flex;
+                  flex-direction: column;
                 }
                 .invoice-print-body > * + * {
                   margin-top: 1.75rem !important;
+                }
+                .invoice-print-body > *:last-child {
+                  margin-top: auto !important;
+                  padding-top: 2rem;
                 }
                 .bg-brand { background-color: #5a49e6 !important; }
                 .bg-mist { background-color: #f6f5fb !important; }
