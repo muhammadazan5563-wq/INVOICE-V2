@@ -142,6 +142,7 @@ export default function InvoiceList({ invoices, onEdit, onDelete, onMarkAsPaid, 
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
                 padding: 40px;
+                margin: 0;
               }
               .font-display { font-family: 'Urbanist', sans-serif !important; }
               .font-mono { font-family: 'JetBrains Mono', monospace !important; }
@@ -171,8 +172,29 @@ export default function InvoiceList({ invoices, onEdit, onDelete, onMarkAsPaid, 
                 flex-direction: row !important;
               }
 
+              /* Match the exact spacing from the invoice view (space-y-7 = 1.75rem) */
+              .invoice-print-body > * + * {
+                margin-top: 1.75rem !important;
+              }
+
+              /* Match the padding from the invoice view (p-8 = 2rem) */
+              .invoice-print-body {
+                padding: 2rem;
+              }
+
+              /* Ensure the divider gap matches exactly */
+              .invoice-print-body .border-b {
+                padding-bottom: 1.5rem !important;
+              }
+
               @media print {
-                body { padding: 20px 0; }
+                body { padding: 0; margin: 0; }
+                .invoice-print-body {
+                  padding: 2rem;
+                }
+                .invoice-print-body > * + * {
+                  margin-top: 1.75rem !important;
+                }
                 .bg-brand { background-color: #5a49e6 !important; }
                 .bg-mist { background-color: #f6f5fb !important; }
                 .bg-shell { background-color: #ffffff !important; }
@@ -181,7 +203,7 @@ export default function InvoiceList({ invoices, onEdit, onDelete, onMarkAsPaid, 
             </style>
           </head>
           <body>
-            <div class="max-w-4xl mx-auto">
+            <div class="max-w-4xl mx-auto invoice-print-body">
               ${printContent.innerHTML}
             </div>
             <script>
