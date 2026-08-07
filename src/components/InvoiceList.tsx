@@ -534,7 +534,7 @@ export default function InvoiceList({ invoices, onEdit, onDelete, onMarkAsPaid, 
                       {template?.companyName || 'FINNOVA'}
                     </h1>
                     <p className="text-[10px] text-quill-soft font-bold uppercase tracking-wider mt-1.5">
-                      Smart Finances, Better Business
+                      {template?.tagline || 'Smart Finances, Better Business'}
                     </p>
                   </div>
                 </div>
@@ -694,15 +694,15 @@ export default function InvoiceList({ invoices, onEdit, onDelete, onMarkAsPaid, 
               <div className="border-t border-hairline pt-5 flex flex-col md:flex-row justify-between items-center gap-3 text-[11px] text-quill font-semibold">
                 <div className="flex items-center gap-2">
                   <Phone className="w-3.5 h-3.5 text-brand" />
-                  <span>123-456-7890</span>
+                  <span>{template?.contactPhone || '123-456-7890'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Mail className="w-3.5 h-3.5 text-brand" />
-                  <span>billing@finnova.com</span>
+                  <span>{template?.contactEmail || 'billing@finnova.com'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <MapPin className="w-3.5 h-3.5 text-brand" />
-                  <span>123 Anywhere St., Any City</span>
+                  <span>{template?.contactAddress || '123 Anywhere St., Any City'}</span>
                 </div>
               </div>
             </div>
