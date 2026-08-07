@@ -38,7 +38,7 @@ interface LedgerProps {
 }
 
 const money = (n: number) =>
-  n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
 const fieldClass =
   'w-full bg-shell rounded-2xl px-4 py-3 text-[12px] font-semibold text-ink placeholder:text-quill-soft placeholder:font-medium outline-none transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand';
