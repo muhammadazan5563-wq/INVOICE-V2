@@ -439,6 +439,139 @@ app.post("/api/sync-booking-sheet", async (req, res) => {
   }
 });
 
+// GET /api/lookup-invoice/:invoiceNumber - Public endpoint to lookup invoice from MASTER sheet
+app.get("/api/lookup-invoice/:invoiceNumber", async (req, res) => {
+  try {
+    const { invoiceNumber } = req.params;
+    if (!invoiceNumber || !invoiceNumber.trim()) {
+      return res.status(400).json({ error: "Invoice number is required" });
+    }
+
+    // Normalize the invoice number - strip common prefixes so we can match REF-{number}
+    let cleanNumber = invoiceNumber.trim();
+    // If user typed "REF-001", strip "REF-" prefix
+    if (cleanNumber.toUpperCase().startsWith("REF-")) {
+      cleanNumber = cleanNumber.substring(4);
+    }
+    // If user typed "INV-001", strip "INV-" prefix
+    if (cleanNumber.toUpperCase().startsWith("INV-")) {
+      cleanNumber = cleanNumber.substring(4);
+    }
+
+    // Get the first user's settings to retrieve spreadsheet config and token
+    const { data: settingsData, error: settingsError } = await supabase
+      .from("user_settings")
+      .select("*")
+      .limit(1)
+      .single();
+
+    if (settingsError || !settingsData) {
+      return res.status(500).json({ error: "No spreadsheet configuration found. Admin needs to connect a spreadsheet in Settings." });
+    }
+
+    const spreadsheetSettings = settingsData.spreadsheet_settings;
+    const accessToken = settingsData.firebase_token;
+
+    if (!spreadsheetSettings || !spreadsheetSettings.spreadsheetId) {
+      return res.status(500).json({ error: "No spreadsheet connected. Admin needs to configure the spreadsheet in Settings." });
+    }
+
+    if (!accessToken) {
+      return res.status(500).json({ error: "No access token available. Admin needs to sign in to refresh the connection." });
+    }
+
+    const spreadsheetId = spreadsheetSettings.spreadsheetId;
+
+    // Read from MASTER sheet - columns A:J
+    const sheetRange = encodeURIComponent("'MASTER'!A:J");
+    const readUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetRange}`;
+
+    const sheetResponse = await fetch(readUrl, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!sheetResponse.ok) {
+      const errBody = await sheetResponse.text();
+      console.error("[lookup-invoice] Failed to read MASTER sheet:", sheetResponse.status, errBody);
+      if (sheetResponse.status === 401 || sheetResponse.status === 403) {
+        return res.status(401).json({ error: "Access token expired. Admin needs to sign in again to refresh the connection." });
+      }
+      return res.status(500).json({ error: `Failed to read spreadsheet (${sheetResponse.status})` });
+    }
+
+    const sheetData = await sheetResponse.json();
+    const allRows: string[][] = sheetData.values || [];
+
+    if (allRows.length === 0) {
+      return res.json({ invoiceNumber, rows: [], total: 0 });
+    }
+
+    // Headers are in the first row
+    const headers = allRows[0] || [];
+
+    // Filter rows where column J (index 9) matches "REF-" + cleanNumber
+    const refValue = `REF-${cleanNumber}`;
+    const matchingRows: any[] = [];
+    let totalDue = 0;
+
+    for (let i = 1; i < allRows.length; i++) {
+      const row = allRows[i];
+      if (!row || row.length === 0) continue;
+
+      // Column J is index 9 (REF#)
+      const refCol = (row[9] || "").trim();
+      if (refCol === refValue) {
+        const roomNumber = row[0] || "";
+        const checkIn = row[1] || "";
+        const checkout = row[2] || "";
+        const nights = row[3] || "";
+        const roomPrice = row[4] || "";
+        const total = row[5] || "";
+        const sum = row[6] || "";
+        const due = row[7] || "";
+        const group = row[8] || "";
+        const ref = row[9] || "";
+
+        matchingRows.push({
+          room: roomNumber,
+          checkIn,
+          checkout,
+          nights: parseInt(nights) || 0,
+          roomPrice: parseFloat(roomPrice) || 0,
+          total: parseFloat(total) || 0,
+          sum: parseFloat(sum) || 0,
+          due: parseFloat(due) || 0,
+          group,
+          ref,
+        });
+
+        totalDue += parseFloat(due) || 0;
+      }
+    }
+
+    // Calculate grand total from the sum column (first matching row usually has it)
+    let grandTotal = 0;
+    for (const row of matchingRows) {
+      grandTotal += row.total;
+    }
+
+    res.json({
+      invoiceNumber,
+      refValue,
+      group: matchingRows.length > 0 ? matchingRows[0].group : "",
+      rows: matchingRows,
+      totalAmount: grandTotal,
+      totalDue,
+      headers: ["Room", "Check In", "Checkout", "Nights", "Room Price", "Total", "Sum", "DUE", "GROUP", "REF#"],
+    });
+  } catch (error: any) {
+    console.error("Error in GET /api/lookup-invoice:", error);
+    res.status(500).json({ error: error.message || "Failed to lookup invoice" });
+  }
+});
+
 // Vite Middleware & SPA serving configuration
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
