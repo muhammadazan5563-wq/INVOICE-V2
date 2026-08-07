@@ -90,6 +90,25 @@ export default function InvoiceList({ invoices, onEdit, onDelete, onMarkAsPaid, 
     };
     forceResponsiveClasses(printContent);
 
+    // Add 4 empty rows to the booking table for print spacing
+    const tableBody = printContent.querySelector('tbody');
+    if (tableBody) {
+      for (let i = 0; i < 4; i++) {
+        const emptyRow = document.createElement('tr');
+        emptyRow.className = 'bg-shell border-t-4 border-mist';
+        emptyRow.innerHTML = `
+          <td class="py-3.5 px-4">&nbsp;</td>
+          <td class="py-3.5 px-4">&nbsp;</td>
+          <td class="py-3.5 px-4">&nbsp;</td>
+          <td class="py-3.5 px-4">&nbsp;</td>
+          <td class="py-3.5 px-4">&nbsp;</td>
+          <td class="py-3.5 px-4">&nbsp;</td>
+          <td class="py-3.5 px-4">&nbsp;</td>
+        `;
+        tableBody.appendChild(emptyRow);
+      }
+    }
+
     const printWindow = window.open('', '_blank');
     if (printWindow) {
       printWindow.document.write(`
