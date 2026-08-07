@@ -14,6 +14,7 @@ import {
   CreditCard,
   FileText,
   RefreshCw,
+  MapPin,
 } from 'lucide-react';
 import {
   InvoiceTemplate,
@@ -62,6 +63,10 @@ export default function Settings({ user, token, onClose, onSettingsSaved }: Sett
   const [currency, setCurrency] = useState('USD');
   const [timezone, setTimezone] = useState('UTC');
   const [taxRate, setTaxRate] = useState(0);
+  const [contactPhone, setContactPhone] = useState('123-456-7890');
+  const [contactEmail, setContactEmail] = useState('billing@finnova.com');
+  const [contactAddress, setContactAddress] = useState('123 Anywhere St., Any City');
+  const [tagline, setTagline] = useState('Smart Finances, Better Business');
 
   // Load existing settings
   useEffect(() => {
@@ -95,6 +100,10 @@ export default function Settings({ user, token, onClose, onSettingsSaved }: Sett
         setCurrency(tmpl.currency);
         setTimezone(tmpl.timezone || 'UTC');
         setTaxRate(tmpl.taxRate);
+        setContactPhone(tmpl.contactPhone || '123-456-7890');
+        setContactEmail(tmpl.contactEmail || 'billing@finnova.com');
+        setContactAddress(tmpl.contactAddress || '123 Anywhere St., Any City');
+        setTagline(tmpl.tagline || 'Smart Finances, Better Business');
       } else {
         // Use defaults
         const tmpl = getTemplateWithDefaults(null);
@@ -102,6 +111,10 @@ export default function Settings({ user, token, onClose, onSettingsSaved }: Sett
         setTermsAndConditions(tmpl.termsAndConditions);
         setPaymentDetails(tmpl.paymentDetails);
         setCurrency(tmpl.currency);
+        setContactPhone(tmpl.contactPhone || '123-456-7890');
+        setContactEmail(tmpl.contactEmail || 'billing@finnova.com');
+        setContactAddress(tmpl.contactAddress || '123 Anywhere St., Any City');
+        setTagline(tmpl.tagline || 'Smart Finances, Better Business');
       }
     } catch (err: any) {
       console.error('Failed to load settings:', err);
@@ -261,6 +274,10 @@ export default function Settings({ user, token, onClose, onSettingsSaved }: Sett
         currency,
         timezone,
         taxRate,
+        contactPhone: contactPhone.trim(),
+        contactEmail: contactEmail.trim(),
+        contactAddress: contactAddress.trim(),
+        tagline: tagline.trim(),
       };
       await saveInvoiceTemplate(user.uid, template);
       setSaveSuccess('Invoice template saved!');
@@ -660,6 +677,67 @@ export default function Settings({ user, token, onClose, onSettingsSaved }: Sett
                     placeholder="Additional notes that appear on every invoice..."
                   />
                 </div>
+              </div>
+
+              {/* Contact & Footer */}
+              <div className="space-y-6 border-t border-hairline pt-6">
+                <h2 className="text-base font-extrabold text-ink flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-rose-500" /> Contact & Footer
+                </h2>
+
+                <div>
+                  <label className="block text-xs font-bold text-quill uppercase tracking-wider mb-2">
+                    Tagline
+                  </label>
+                  <input
+                    type="text"
+                    value={tagline}
+                    onChange={(e) => setTagline(e.target.value)}
+                    className="w-full bg-mist border border-hairline focus:bg-shell focus:bg-mist-2 rounded-xl px-4 py-3 text-ink placeholder:text-quill-soft focus:outline-none transition-all text-sm"
+                    placeholder="e.g. Smart Finances, Better Business"
+                  />
+                  <p className="text-xs text-quill-soft mt-1">Shown below the company name on the invoice header.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-xs font-bold text-quill uppercase tracking-wider mb-2">
+                      Phone Number
+                    </label>
+                    <input
+                      type="text"
+                      value={contactPhone}
+                      onChange={(e) => setContactPhone(e.target.value)}
+                      className="w-full bg-mist border border-hairline focus:bg-shell focus:bg-mist-2 rounded-xl px-4 py-3 text-ink placeholder:text-quill-soft focus:outline-none transition-all text-sm"
+                      placeholder="e.g. 123-456-7890"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-quill uppercase tracking-wider mb-2">
+                      Email Address
+                    </label>
+                    <input
+                      type="text"
+                      value={contactEmail}
+                      onChange={(e) => setContactEmail(e.target.value)}
+                      className="w-full bg-mist border border-hairline focus:bg-shell focus:bg-mist-2 rounded-xl px-4 py-3 text-ink placeholder:text-quill-soft focus:outline-none transition-all text-sm"
+                      placeholder="e.g. billing@company.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-quill uppercase tracking-wider mb-2">
+                      Address
+                    </label>
+                    <input
+                      type="text"
+                      value={contactAddress}
+                      onChange={(e) => setContactAddress(e.target.value)}
+                      className="w-full bg-mist border border-hairline focus:bg-shell focus:bg-mist-2 rounded-xl px-4 py-3 text-ink placeholder:text-quill-soft focus:outline-none transition-all text-sm"
+                      placeholder="e.g. 123 Anywhere St., Any City"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-quill-soft">These details appear in the invoice footer (phone, email, address).</p>
               </div>
 
               {/* Save Button */}
