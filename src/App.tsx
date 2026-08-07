@@ -115,6 +115,12 @@ export default function App() {
                 {label}
               </span>
             ))}
+            <a
+              href="/track"
+              className="px-4 py-2.5 rounded-full text-[12px] font-bold text-white/55 hover:text-white transition-colors no-underline"
+            >
+              Track Invoice
+            </a>
           </nav>
 
           <button
@@ -177,6 +183,17 @@ export default function App() {
                 <ShieldCheck className="w-4 h-4 text-brand shrink-0" />
                 Read and append access to your spreadsheet only.
               </span>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <a
+                href="/track"
+                className="inline-flex items-center gap-2 bg-mist hover:bg-mist-2 border border-hairline text-ink text-[12px] font-bold px-5 py-3 rounded-full transition-colors no-underline"
+              >
+                <Layers className="w-3.5 h-3.5 text-brand" />
+                Track Your Invoice
+              </a>
+              <span className="text-[11px] text-quill-soft font-medium">No login required</span>
             </div>
           </div>
 
@@ -257,7 +274,12 @@ export default function App() {
           <span className="text-[11px] font-semibold text-quill-soft">
             FINNOVA © 2026 · Built with React, Tailwind and Supabase
           </span>
-          <span className="text-[11px] font-semibold text-quill-soft">Smart Finances, Better Business</span>
+          <div className="flex items-center gap-4">
+            <a href="/track" className="text-[11px] font-bold text-brand hover:text-brand-mid no-underline transition-colors">
+              Track Invoice
+            </a>
+            <span className="text-[11px] font-semibold text-quill-soft">Smart Finances, Better Business</span>
+          </div>
         </footer>
       </div>
     </div>
