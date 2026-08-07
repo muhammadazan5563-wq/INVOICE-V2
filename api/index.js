@@ -331,56 +331,86 @@ export default async function handler(req, res) {
     // GET /api/lookup-invoice/:invoiceNumber
     const lookupMatch = path.match(/^\/api\/lookup-invoice\/(.+)$/);
     if (lookupMatch && method === "GET") {
-      const invoiceNumber = decodeURIComponent(lookupMatch[1]);
-      if (!invoiceNumber || !invoiceNumber.trim()) {
+      let invoiceNumber = decodeURIComponent(lookupMatch[1]).trim();
+      if (!invoiceNumber) {
         return res.status(400).json({ error: "Invoice number is required" });
       }
 
-      const { data: settingsData, error: settingsError } = await supabase
+      // Normalize - strip common prefixes
+      if (invoiceNumber.toUpperCase().startsWith("REF-")) {
+        invoiceNumber = invoiceNumber.substring(4);
+      }
+      if (invoiceNumber.toUpperCase().startsWith("INV-")) {
+        invoiceNumber = invoiceNumber.substring(4);
+      }
+
+      // Hardcoded spreadsheet configuration
+      const spreadsheetId = "1pxQgtpDyOj0GK0y9A2yIl0xp73fZfY1HG53VPkgS5rA";
+      const sheetName = "MASTER";
+      const sheetRange = encodeURIComponent(`'${sheetName}'!A:J`);
+
+      let allRows = [];
+
+      // Strategy 1: Try with OAuth token from database
+      const { data: settingsData } = await supabase
         .from("user_settings")
-        .select("*")
+        .select("firebase_token")
         .limit(1)
         .single();
 
-      if (settingsError || !settingsData) {
-        return res.status(500).json({ error: "No spreadsheet configuration found. Admin needs to connect a spreadsheet in Settings." });
-      }
+      const accessToken = settingsData?.firebase_token || null;
 
-      const spreadsheetSettings = settingsData.spreadsheet_settings;
-      const accessToken = settingsData.firebase_token;
-
-      if (!spreadsheetSettings || !spreadsheetSettings.spreadsheetId) {
-        return res.status(500).json({ error: "No spreadsheet connected. Admin needs to configure the spreadsheet in Settings." });
-      }
-
-      if (!accessToken) {
-        return res.status(500).json({ error: "No access token available. Admin needs to sign in to refresh the connection." });
-      }
-
-      const spreadsheetId = spreadsheetSettings.spreadsheetId;
-      const sheetRange = encodeURIComponent("'MASTER'!A:J");
-      const readUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetRange}`;
-
-      const sheetResponse = await fetch(readUrl, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-
-      if (!sheetResponse.ok) {
-        const errBody = await sheetResponse.text();
-        if (sheetResponse.status === 401 || sheetResponse.status === 403) {
-          return res.status(401).json({ error: "Access token expired. Admin needs to sign in again." });
+      if (accessToken) {
+        const readUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetRange}`;
+        const sheetResponse = await fetch(readUrl, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (sheetResponse.ok) {
+          const sheetData = await sheetResponse.json();
+          allRows = sheetData.values || [];
         }
-        return res.status(500).json({ error: `Failed to read spreadsheet (${sheetResponse.status})` });
       }
 
-      const sheetData = await sheetResponse.json();
-      const allRows = sheetData.values || [];
+      // Strategy 2: Try Google Visualization API (works for publicly shared sheets)
+      if (allRows.length === 0) {
+        const gvizUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
+        const gvizResponse = await fetch(gvizUrl);
+        if (gvizResponse.ok) {
+          const gvizText = await gvizResponse.text();
+          const jsonMatch = gvizText.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?\s*$/);
+          if (jsonMatch) {
+            const gvizData = JSON.parse(jsonMatch[1]);
+            const table = gvizData.table;
+            if (table && table.rows) {
+              const headerRow = table.cols.map((c) => c.label || "");
+              const dataRows = table.rows.map((r) =>
+                r.c.map((cell) => (cell && cell.v != null) ? String(cell.v) : "")
+              );
+              allRows = [headerRow, ...dataRows];
+            }
+          }
+        }
+      }
+
+      // Strategy 3: Try with API key
+      if (allRows.length === 0) {
+        const googleApiKey = process.env.GOOGLE_API_KEY || "";
+        if (googleApiKey) {
+          const readUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetRange}?key=${googleApiKey}`;
+          const sheetResponse = await fetch(readUrl);
+          if (sheetResponse.ok) {
+            const sheetData = await sheetResponse.json();
+            allRows = sheetData.values || [];
+          }
+        }
+      }
 
       if (allRows.length === 0) {
-        return res.status(200).json({ invoiceNumber, rows: [], total: 0 });
+        return res.status(500).json({ error: "Unable to access the spreadsheet. Please ensure the sheet is shared publicly." });
       }
 
-      const refValue = `REF-${invoiceNumber.trim()}`;
+      // Filter rows where column J (index 9) matches "REF-" + invoiceNumber
+      const refValue = `REF-${invoiceNumber}`;
       const matchingRows = [];
       let totalDue = 0;
 
