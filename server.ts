@@ -449,67 +449,84 @@ app.get("/api/lookup-invoice/:invoiceNumber", async (req, res) => {
 
     // Normalize the invoice number - strip common prefixes so we can match REF-{number}
     let cleanNumber = invoiceNumber.trim();
-    // If user typed "REF-001", strip "REF-" prefix
     if (cleanNumber.toUpperCase().startsWith("REF-")) {
       cleanNumber = cleanNumber.substring(4);
     }
-    // If user typed "INV-001", strip "INV-" prefix
     if (cleanNumber.toUpperCase().startsWith("INV-")) {
       cleanNumber = cleanNumber.substring(4);
     }
 
-    // Get the first user's settings to retrieve spreadsheet config and token
-    const { data: settingsData, error: settingsError } = await supabase
+    // Hardcoded spreadsheet configuration
+    const spreadsheetId = "1pxQgtpDyOj0GK0y9A2yIl0xp73fZfY1HG53VPkgS5rA";
+    const sheetName = "MASTER";
+
+    let allRows: string[][] = [];
+
+    // Strategy 1: Try with OAuth token from database
+    const { data: settingsData } = await supabase
       .from("user_settings")
-      .select("*")
+      .select("firebase_token")
       .limit(1)
       .single();
 
-    if (settingsError || !settingsData) {
-      return res.status(500).json({ error: "No spreadsheet configuration found. Admin needs to connect a spreadsheet in Settings." });
-    }
+    const accessToken = settingsData?.firebase_token || null;
+    const sheetRange = encodeURIComponent(`'${sheetName}'!A:J`);
 
-    const spreadsheetSettings = settingsData.spreadsheet_settings;
-    const accessToken = settingsData.firebase_token;
+    if (accessToken) {
+      const readUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetRange}`;
+      const sheetResponse = await fetch(readUrl, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
 
-    if (!spreadsheetSettings || !spreadsheetSettings.spreadsheetId) {
-      return res.status(500).json({ error: "No spreadsheet connected. Admin needs to configure the spreadsheet in Settings." });
-    }
-
-    if (!accessToken) {
-      return res.status(500).json({ error: "No access token available. Admin needs to sign in to refresh the connection." });
-    }
-
-    const spreadsheetId = spreadsheetSettings.spreadsheetId;
-
-    // Read from MASTER sheet - columns A:J
-    const sheetRange = encodeURIComponent("'MASTER'!A:J");
-    const readUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetRange}`;
-
-    const sheetResponse = await fetch(readUrl, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    if (!sheetResponse.ok) {
-      const errBody = await sheetResponse.text();
-      console.error("[lookup-invoice] Failed to read MASTER sheet:", sheetResponse.status, errBody);
-      if (sheetResponse.status === 401 || sheetResponse.status === 403) {
-        return res.status(401).json({ error: "Access token expired. Admin needs to sign in again to refresh the connection." });
+      if (sheetResponse.ok) {
+        const sheetData = await sheetResponse.json();
+        allRows = sheetData.values || [];
+      } else {
+        console.error("[lookup-invoice] OAuth token failed:", sheetResponse.status);
       }
-      return res.status(500).json({ error: `Failed to read spreadsheet (${sheetResponse.status})` });
     }
 
-    const sheetData = await sheetResponse.json();
-    const allRows: string[][] = sheetData.values || [];
+    // Strategy 2: If OAuth failed or no token, try Google Visualization API (works for publicly shared sheets)
+    if (allRows.length === 0) {
+      const gvizUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
+      const gvizResponse = await fetch(gvizUrl);
+
+      if (gvizResponse.ok) {
+        const gvizText = await gvizResponse.text();
+        // Google Visualization API returns JSONP-like: google.visualization.Query.setResponse({...})
+        const jsonMatch = gvizText.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?\s*$/);
+        if (jsonMatch) {
+          const gvizData = JSON.parse(jsonMatch[1]);
+          const table = gvizData.table;
+          if (table && table.rows) {
+            const headerRow = table.cols.map((c: any) => c.label || "");
+            const dataRows = table.rows.map((r: any) =>
+              r.c.map((cell: any) => (cell && cell.v != null) ? String(cell.v) : "")
+            );
+            allRows = [headerRow, ...dataRows];
+          }
+        }
+      } else {
+        console.error("[lookup-invoice] Google Visualization API failed:", gvizResponse.status);
+      }
+    }
+
+    // Strategy 3: If still no data, try with API key (if configured)
+    if (allRows.length === 0) {
+      const googleApiKey = process.env.GOOGLE_API_KEY || "";
+      if (googleApiKey) {
+        const readUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetRange}?key=${googleApiKey}`;
+        const sheetResponse = await fetch(readUrl);
+        if (sheetResponse.ok) {
+          const sheetData = await sheetResponse.json();
+          allRows = sheetData.values || [];
+        }
+      }
+    }
 
     if (allRows.length === 0) {
-      return res.json({ invoiceNumber, rows: [], total: 0 });
+      return res.status(500).json({ error: "Unable to access the spreadsheet. Please ensure the sheet is shared publicly (Anyone with the link can view)." });
     }
-
-    // Headers are in the first row
-    const headers = allRows[0] || [];
 
     // Filter rows where column J (index 9) matches "REF-" + cleanNumber
     const refValue = `REF-${cleanNumber}`;
@@ -523,42 +540,30 @@ app.get("/api/lookup-invoice/:invoiceNumber", async (req, res) => {
       // Column J is index 9 (REF#)
       const refCol = (row[9] || "").trim();
       if (refCol === refValue) {
-        const roomNumber = row[0] || "";
-        const checkIn = row[1] || "";
-        const checkout = row[2] || "";
-        const nights = row[3] || "";
-        const roomPrice = row[4] || "";
-        const total = row[5] || "";
-        const sum = row[6] || "";
-        const due = row[7] || "";
-        const group = row[8] || "";
-        const ref = row[9] || "";
-
         matchingRows.push({
-          room: roomNumber,
-          checkIn,
-          checkout,
-          nights: parseInt(nights) || 0,
-          roomPrice: parseFloat(roomPrice) || 0,
-          total: parseFloat(total) || 0,
-          sum: parseFloat(sum) || 0,
-          due: parseFloat(due) || 0,
-          group,
-          ref,
+          room: row[0] || "",
+          checkIn: row[1] || "",
+          checkout: row[2] || "",
+          nights: parseInt(row[3]) || 0,
+          roomPrice: parseFloat(row[4]) || 0,
+          total: parseFloat(row[5]) || 0,
+          sum: parseFloat(row[6]) || 0,
+          due: parseFloat(row[7]) || 0,
+          group: row[8] || "",
+          ref: row[9] || "",
         });
-
-        totalDue += parseFloat(due) || 0;
+        totalDue += parseFloat(row[7]) || 0;
       }
     }
 
-    // Calculate grand total from the sum column (first matching row usually has it)
+    // Calculate grand total
     let grandTotal = 0;
     for (const row of matchingRows) {
       grandTotal += row.total;
     }
 
     res.json({
-      invoiceNumber,
+      invoiceNumber: cleanNumber,
       refValue,
       group: matchingRows.length > 0 ? matchingRows[0].group : "",
       rows: matchingRows,
