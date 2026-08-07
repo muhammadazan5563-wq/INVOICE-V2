@@ -12,7 +12,7 @@ interface InvoiceListProps {
 }
 
 const money = (n: number) =>
-  n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
 export default function InvoiceList({ invoices, onEdit, onDelete, onMarkAsPaid, template }: InvoiceListProps) {
   const [search, setSearch] = useState('');
@@ -68,6 +68,39 @@ export default function InvoiceList({ invoices, onEdit, onDelete, onMarkAsPaid, 
             <title>${template?.companyName || 'FINNOVA'} - Invoice #${selectedInvoice?.id}</title>
             <meta charset="utf-8">
             <script src="https://cdn.tailwindcss.com"></script>
+            <script>
+              tailwind.config = {
+                theme: {
+                  extend: {
+                    colors: {
+                      canvas: '#eceaf6',
+                      shell: '#ffffff',
+                      mist: '#f6f5fb',
+                      'mist-2': '#edecf6',
+                      hairline: '#e6e4f0',
+                      ink: '#131126',
+                      'ink-2': '#1e1b36',
+                      'ink-3': '#2b2750',
+                      brand: '#5a49e6',
+                      'brand-mid': '#6d5cf0',
+                      'brand-soft': '#8a7bf5',
+                      'brand-pale': '#f0eefe',
+                      quill: '#6c6885',
+                      'quill-soft': '#9d99b4',
+                    },
+                    fontFamily: {
+                      sans: ['Manrope', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                      display: ['Urbanist', 'Manrope', 'sans-serif'],
+                      mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    borderRadius: {
+                      '2xl': '16px',
+                      '3xl': '22px',
+                    }
+                  }
+                }
+              }
+            </script>
             <style>
               @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Urbanist:wght@500;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
 
@@ -81,9 +114,30 @@ export default function InvoiceList({ invoices, onEdit, onDelete, onMarkAsPaid, 
               }
               .font-display { font-family: 'Urbanist', sans-serif !important; }
               .font-mono { font-family: 'JetBrains Mono', monospace !important; }
-              .nums { font-variant-numeric: tabular-nums; }
+              .nums { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+              /* Custom theme classes for print */
+              .bg-shell { background-color: #ffffff !important; }
+              .bg-mist { background-color: #f6f5fb !important; }
+              .bg-mist-2 { background-color: #edecf6 !important; }
+              .bg-canvas { background-color: #eceaf6 !important; }
+              .bg-ink { background-color: #131126 !important; }
+              .bg-brand { background-color: #5a49e6 !important; }
+              .bg-brand-pale { background-color: #f0eefe !important; }
+              .text-ink { color: #131126 !important; }
+              .text-quill { color: #6c6885 !important; }
+              .text-quill-soft { color: #9d99b4 !important; }
+              .text-brand { color: #5a49e6 !important; }
+              .text-brand-soft { color: #8a7bf5 !important; }
+              .border-hairline { border-color: #e6e4f0 !important; }
+              .border-mist { border-color: #f6f5fb !important; }
+
               @media print {
                 body { padding: 20px 0; }
+                .bg-brand { background-color: #5a49e6 !important; }
+                .bg-mist { background-color: #f6f5fb !important; }
+                .bg-shell { background-color: #ffffff !important; }
+                .text-white { color: #ffffff !important; }
               }
             </style>
           </head>
