@@ -90,22 +90,34 @@ export default function InvoiceList({ invoices, onEdit, onDelete, onMarkAsPaid, 
     };
     forceResponsiveClasses(printContent);
 
-    // Add 3 empty rows gap in the booking table for print
+    // Add 3 rows of empty white spacing gap in the booking table for print
     const tableBody = printContent.querySelector('tbody');
     if (tableBody) {
       for (let i = 0; i < 3; i++) {
         const emptyRow = document.createElement('tr');
-        emptyRow.className = 'bg-shell border-t-4 border-mist';
+        emptyRow.setAttribute('style', 'border: none !important; border-top: none !important; border-bottom: none !important; background-color: #ffffff !important;');
+        emptyRow.className = '';
         emptyRow.innerHTML = `
-          <td class="py-3.5 px-4"></td>
-          <td class="py-3.5 px-4"></td>
-          <td class="py-3.5 px-4"></td>
-          <td class="py-3.5 px-4"></td>
-          <td class="py-3.5 px-4"></td>
-          <td class="py-3.5 px-4"></td>
-          <td class="py-3.5 px-4"></td>
+          <td colspan="7" style="padding: 14px 0; border: none !important; border-top: none !important; border-bottom: none !important; background-color: #ffffff !important;"></td>
         `;
         tableBody.appendChild(emptyRow);
+      }
+    }
+
+    // Add gap between Terms & Conditions and Payment Information sections (print only)
+    // Find the grid section with Terms + Totals and increase internal spacing
+    const gridSection = printContent.querySelector('.grid.grid-cols-1');
+    if (gridSection) {
+      // Left column: increase gap between Terms text and Payment Info box
+      const leftCol = gridSection.querySelector('.space-y-5');
+      if (leftCol) {
+        leftCol.classList.remove('space-y-5');
+        leftCol.setAttribute('style', 'display: flex; flex-direction: column; gap: 2.5rem;');
+      }
+      // Right column: increase gap between Amount paid and Change Due
+      const rightCol = gridSection.querySelector('[class*="space-y-3"]');
+      if (rightCol) {
+        rightCol.setAttribute('style', 'display: flex; flex-direction: column; gap: 1.5rem;');
       }
     }
 
@@ -218,6 +230,30 @@ export default function InvoiceList({ invoices, onEdit, onDelete, onMarkAsPaid, 
                 padding-top: 2rem;
               }
 
+              /* Hide borders on empty spacing rows */
+              tbody tr[style*="background-color: #ffffff"] {
+                border: none !important;
+                border-top: none !important;
+                border-bottom: none !important;
+              }
+              tbody tr[style*="background-color: #ffffff"] td {
+                border: none !important;
+                border-top: none !important;
+                border-bottom: none !important;
+              }
+              /* Override any table border-spacing that might show lines */
+              table {
+                border-collapse: collapse;
+              }
+              .border-t-4 {
+                border-top-width: 4px;
+              }
+              /* But not on our spacing rows */
+              tr[style*="background-color: #ffffff"].border-t-4,
+              tr[style*="background-color: #ffffff"] {
+                border-top: none !important;
+              }
+
               @media print {
                 body { padding: 0; margin: 0; }
                 .invoice-print-body {
@@ -232,6 +268,11 @@ export default function InvoiceList({ invoices, onEdit, onDelete, onMarkAsPaid, 
                 .invoice-print-body > *:last-child {
                   margin-top: auto !important;
                   padding-top: 2rem;
+                }
+                tbody tr[style*="background-color: #ffffff"],
+                tbody tr[style*="background-color: #ffffff"] td {
+                  border: none !important;
+                  background-color: #ffffff !important;
                 }
                 .bg-brand { background-color: #5a49e6 !important; }
                 .bg-mist { background-color: #f6f5fb !important; }
