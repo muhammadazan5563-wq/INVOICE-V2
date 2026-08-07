@@ -386,19 +386,13 @@ ALTER TABLE user_settings DISABLE ROW LEVEL SECURITY;`;
     : user.email?.slice(0, 2).toUpperCase() || 'U';
 
   const navItems: { key: ViewState; label: string }[] = [
-    { key: 'dashboard', label: 'Overview' },
-    { key: 'create', label: 'Estimates' },
-    { key: 'ledger', label: 'Payments' },
-    { key: 'settings', label: 'Checkouts' },
+    { key: 'dashboard', label: 'Dashboard' },
+    { key: 'create', label: 'Invoice' },
+    { key: 'ledger', label: 'Ledger' },
+    { key: 'settings', label: 'Settings' },
   ];
 
-  const quickIcons = [
-    { icon: FileText, label: 'Documents', action: () => setViewState('dashboard') },
-    { icon: Wallet, label: 'Wallet', action: () => setViewState('ledger') },
-    { icon: ClipboardList, label: 'Ledger', action: () => setViewState('ledger') },
-    { icon: Receipt, label: 'Receipts', action: () => setViewState('dashboard') },
-    { icon: Repeat, label: 'Recurring', action: () => setViewState('ledger') },
-  ];
+
 
   const pageTitle =
     viewState === 'dashboard'
@@ -472,19 +466,7 @@ ALTER TABLE user_settings DISABLE ROW LEVEL SECURITY;`;
 
           {/* Icon cluster */}
           <div className="flex items-center gap-1.5 shrink-0">
-            <div className="hidden 2xl:flex items-center gap-1.5">
-              {quickIcons.map(({ icon: Icon, label, action }) => (
-                <button
-                  key={label}
-                  type="button"
-                  title={label}
-                  onClick={action}
-                  className="w-10 h-10 rounded-full bg-mist hover:bg-mist-2 flex items-center justify-center transition-colors duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-                >
-                  <Icon className="w-4 h-4 text-ink" />
-                </button>
-              ))}
-            </div>
+
 
             <button
               type="button"
