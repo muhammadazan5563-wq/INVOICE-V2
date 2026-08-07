@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Invoice } from '../types';
 import { InvoiceTemplate, getCurrencySymbol } from '../lib/settings';
-import { Search, Eye, Edit2, CheckCircle, Trash2, Printer, FileText, Mail, Phone, MapPin, X, Plus, Waves } from 'lucide-react';
+import { Search, Eye, Edit2, CheckCircle, Trash2, Printer, FileText, Mail, Calendar, User, Phone, MapPin, X, Plus } from 'lucide-react';
 
 interface InvoiceListProps {
   invoices: Invoice[];
@@ -11,29 +11,29 @@ interface InvoiceListProps {
   template?: InvoiceTemplate | null;
 }
 
-const money = (n: number) =>
-  n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-
 export default function InvoiceList({ invoices, onEdit, onDelete, onMarkAsPaid, template }: InvoiceListProps) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [visibleCount, setVisibleCount] = useState<number>(50);
 
+  // Get currency symbol from template settings
   const currencySymbol = getCurrencySymbol(template?.currency || 'USD');
 
+  // Reset visible count when search or filter changes
   useEffect(() => {
     setVisibleCount(50);
   }, [search, statusFilter]);
 
+  // Filter invoices based on search terms and selected status
   const filteredInvoices = invoices.filter((inv) => {
     if (inv.status === ('Archived' as any)) return false;
 
-    const matchesSearch =
+    const matchesSearch = 
       inv.id.toLowerCase().includes(search.toLowerCase()) ||
       inv.customerName.toLowerCase().includes(search.toLowerCase()) ||
       inv.customerEmail.toLowerCase().includes(search.toLowerCase());
-
+      
     const matchesStatus = statusFilter === 'All' || inv.status === statusFilter;
 
     return matchesSearch && matchesStatus;
@@ -42,53 +42,23 @@ export default function InvoiceList({ invoices, onEdit, onDelete, onMarkAsPaid, 
   const getStatusStyle = (status: Invoice['status']) => {
     switch (status) {
       case 'Paid':
-        return 'bg-[#e8f7ee] text-[#2f6b48]';
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
       case 'Due':
-      case 'Pending':
-        return 'bg-[#fdf3e2] text-[#8a5c17]';
+        return 'bg-amber-50 text-amber-700 border-amber-200';
       case 'Unpaid':
-        return 'bg-[#fdeeea] text-[#a8492f]';
+        return 'bg-red-50 text-red-700 border-red-200';
+      case 'Pending':
+        return 'bg-amber-50 text-amber-700 border-amber-200';
       case 'Overdue':
-        return 'bg-brand-pale text-brand';
+        return 'bg-violet-50 text-violet-700 border-violet-200';
       default:
-        return 'bg-mist text-quill';
+        return 'bg-slate-50 text-slate-700 border-slate-200';
     }
   };
 
   const handlePrint = () => {
-    const printContent = document.getElementById('invoice-receipt-body')?.cloneNode(true) as HTMLElement;
+    const printContent = document.getElementById("invoice-receipt-body")?.cloneNode(true) as HTMLElement;
     if (!printContent) return;
-
-    // Force responsive classes to their expanded state for print
-    const forceResponsiveClasses = (el: HTMLElement) => {
-      const all = el.querySelectorAll('*');
-      const process = (node: Element) => {
-        const cl = node.classList;
-        // lg:grid-cols-2 → grid-cols-2
-        if (cl.contains('lg:grid-cols-2')) {
-          cl.remove('grid-cols-1', 'lg:grid-cols-2');
-          cl.add('grid-cols-2');
-        }
-        // sm:flex-row → flex-row
-        if (cl.contains('sm:flex-row')) {
-          cl.remove('flex-col', 'sm:flex-row');
-          cl.add('flex-row');
-        }
-        // md:flex-row → flex-row
-        if (cl.contains('md:flex-row')) {
-          cl.remove('flex-col', 'md:flex-row');
-          cl.add('flex-row');
-        }
-        // sm:p-8 → p-8
-        if (cl.contains('sm:p-8')) {
-          cl.remove('sm:p-8');
-          cl.add('p-8');
-        }
-      };
-      process(el);
-      all.forEach(n => process(n));
-    };
-    forceResponsiveClasses(printContent);
 
     const printWindow = window.open('', '_blank');
     if (printWindow) {
@@ -96,87 +66,42 @@ export default function InvoiceList({ invoices, onEdit, onDelete, onMarkAsPaid, 
         <!DOCTYPE html>
         <html>
           <head>
-            <title>${template?.companyName || 'FINNOVA'} - Invoice #${selectedInvoice?.id}</title>
+            <title>${template?.companyName || 'FAIZ GROUP'} - Invoice #${selectedInvoice?.id}</title>
             <meta charset="utf-8">
             <script src="https://cdn.tailwindcss.com"></script>
-            <script>
-              tailwind.config = {
-                theme: {
-                  extend: {
-                    colors: {
-                      canvas: '#eceaf6',
-                      shell: '#ffffff',
-                      mist: '#f6f5fb',
-                      'mist-2': '#edecf6',
-                      hairline: '#e6e4f0',
-                      ink: '#131126',
-                      'ink-2': '#1e1b36',
-                      'ink-3': '#2b2750',
-                      brand: '#5a49e6',
-                      'brand-mid': '#6d5cf0',
-                      'brand-soft': '#8a7bf5',
-                      'brand-pale': '#f0eefe',
-                      quill: '#6c6885',
-                      'quill-soft': '#9d99b4',
-                    },
-                    fontFamily: {
-                      sans: ['Manrope', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-                      display: ['Urbanist', 'Manrope', 'sans-serif'],
-                      mono: ['JetBrains Mono', 'monospace'],
-                    },
-                    borderRadius: {
-                      '2xl': '16px',
-                      '3xl': '22px',
-                    }
-                  }
-                }
-              }
-            </script>
             <style>
-              @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Urbanist:wght@500;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
-
+              @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+              
               body {
-                font-family: 'Manrope', sans-serif;
+                font-family: 'Inter', sans-serif;
                 background-color: white !important;
-                color: #131126 !important;
+                color: #1e293b !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
                 padding: 40px;
               }
-              .font-display { font-family: 'Urbanist', sans-serif !important; }
-              .font-mono { font-family: 'JetBrains Mono', monospace !important; }
-              .nums { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
-
-              /* Custom theme classes for print */
-              .bg-shell { background-color: #ffffff !important; }
-              .bg-mist { background-color: #f6f5fb !important; }
-              .bg-mist-2 { background-color: #edecf6 !important; }
-              .bg-canvas { background-color: #eceaf6 !important; }
-              .bg-ink { background-color: #131126 !important; }
-              .bg-brand { background-color: #5a49e6 !important; }
-              .bg-brand-pale { background-color: #f0eefe !important; }
-              .text-ink { color: #131126 !important; }
-              .text-quill { color: #6c6885 !important; }
-              .text-quill-soft { color: #9d99b4 !important; }
-              .text-brand { color: #5a49e6 !important; }
-              .text-brand-soft { color: #8a7bf5 !important; }
-              .border-hairline { border-color: #e6e4f0 !important; }
-              .border-mist { border-color: #f6f5fb !important; }
-
-              /* Ensure grid-cols-2 works (DOM manipulation removes responsive prefixes) */
-              .grid-cols-2 {
-                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+              .font-display {
+                font-family: 'Space Grotesk', sans-serif !important;
               }
-              .flex-row {
-                flex-direction: row !important;
+              .font-mono {
+                font-family: 'JetBrains Mono', monospace !important;
               }
-
               @media print {
-                body { padding: 20px 0; }
-                .bg-brand { background-color: #5a49e6 !important; }
-                .bg-mist { background-color: #f6f5fb !important; }
-                .bg-shell { background-color: #ffffff !important; }
-                .text-white { color: #ffffff !important; }
+                body {
+                  padding: 20px 0;
+                }
+                .bg-blue-600 {
+                  background-color: #2563eb !important;
+                }
+                .bg-slate-50 {
+                  background-color: #f8fafc !important;
+                }
+                .text-white {
+                  color: #ffffff !important;
+                }
+                .text-blue-100 {
+                  color: #dbeafe !important;
+                }
               }
             </style>
           </head>
@@ -202,29 +127,29 @@ export default function InvoiceList({ invoices, onEdit, onDelete, onMarkAsPaid, 
   };
 
   return (
-    <div className="space-y-5" id="invoice-list-section">
-      {/* Search & status pills */}
-      <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-        <div className="relative w-full md:max-w-sm">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-quill pointer-events-none" />
+    <div className="space-y-6" id="invoice-list-section">
+      {/* Search & Filter Controls */}
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+        <div className="relative w-full md:max-w-md">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Search invoice #, customer or email"
+            placeholder="Search by invoice no, customer name or email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            aria-label="Search the ledger"
-            className="w-full bg-mist hover:bg-mist-2 focus:bg-mist-2 rounded-full pl-11 pr-4 py-3 text-[12px] font-semibold text-ink placeholder:text-quill-soft placeholder:font-medium outline-none transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-800 focus:outline-none transition-all placeholder:text-slate-400"
           />
         </div>
 
-        <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
+        <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
           {['All', 'Paid', 'Due', 'Unpaid', 'Pending', 'Overdue'].map((status) => (
             <button
               key={status}
-              type="button"
               onClick={() => setStatusFilter(status)}
-              className={`px-4 py-2.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-colors duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
-                statusFilter === status ? 'bg-brand text-white' : 'bg-mist text-quill hover:md:bg-mist-2'
+              className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all whitespace-nowrap ${
+                statusFilter === status
+                  ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                  : 'bg-slate-50 border-slate-100 text-slate-500 hover:border-slate-300 hover:bg-slate-100'
               }`}
             >
               {status}
@@ -233,130 +158,131 @@ export default function InvoiceList({ invoices, onEdit, onDelete, onMarkAsPaid, 
         </div>
       </div>
 
-      <div className={`grid grid-cols-1 gap-5 ${selectedInvoice ? 'xl:grid-cols-3' : ''}`}>
-        {/* Ledger table */}
-        <div className={`bg-mist rounded-[22px] overflow-hidden ${selectedInvoice ? 'xl:col-span-1' : ''}`}>
+      {/* Main Grid: List on Left, Active Preview on Right */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* Table/List View */}
+        <div className={`bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden ${selectedInvoice ? 'xl:col-span-1' : 'xl:col-span-3'}`}>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="text-quill font-bold text-[10px] uppercase tracking-wider">
-                  <th className="py-4 px-5">Invoice</th>
-                  <th className="py-4 px-5">Customer</th>
+                <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 font-bold text-xs uppercase tracking-wider">
+                  <th className="py-4 px-5">Invoice No</th>
+                  <th className="py-4 px-5">Customer / Guest</th>
                   <th className="py-4 px-5">Date</th>
-                  <th className="py-4 px-5 text-right">Total</th>
-                  <th className="py-4 px-5 text-right">Paid</th>
-                  <th className="py-4 px-5 text-right">Balance</th>
+                  <th className="py-4 px-5 text-right">Total ({currencySymbol})</th>
+                  <th className="py-4 px-5 text-right">Paid ({currencySymbol})</th>
+                  <th className="py-4 px-5 text-right">Balance ({currencySymbol})</th>
                   <th className="py-4 px-5 text-center">Status</th>
                   <th className="py-4 px-5 text-center">Actions</th>
                 </tr>
               </thead>
-              <tbody className="text-ink">
+              <tbody className="divide-y divide-slate-100 text-slate-700">
                 {filteredInvoices.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-14 px-6 text-center">
-                      <p className="text-[13px] font-bold text-ink">No invoices match these filters</p>
-                      <p className="text-[11px] text-quill-soft mt-1.5 font-medium">
-                        Widen the status pills or clear the search to see more.
-                      </p>
+                    <td colSpan={8} className="py-12 text-center text-slate-400 font-medium">
+                      No booking invoices found matching current filters.
                     </td>
                   </tr>
                 ) : (
                   filteredInvoices.slice(0, visibleCount).map((inv, index) => (
-                    <tr
-                      key={`${inv.id}-${inv.rowIndex || index}`}
-                      className={`bg-shell border-t-4 border-mist transition-colors duration-200 hover:md:bg-brand-pale/60 ${
-                        selectedInvoice?.id === inv.id ? 'bg-brand-pale' : ''
-                      }`}
+                    <tr 
+                      key={`${inv.id}-${inv.rowIndex || index}`} 
+                      className={`hover:bg-slate-50/70 transition-colors ${selectedInvoice?.id === inv.id ? 'bg-blue-50/20' : ''}`}
                     >
+                      {/* Invoice ID */}
                       <td className="py-4 px-5">
-                        <button
-                          type="button"
+                        <button 
                           onClick={() => setSelectedInvoice(inv)}
-                          className="flex items-center gap-1.5 text-[12px] font-bold text-brand hover:text-brand-mid transition-colors duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand rounded"
+                          className="font-bold text-blue-600 hover:text-blue-800 text-sm focus:outline-none flex items-center gap-1.5"
                         >
                           <FileText className="w-3.5 h-3.5" />
                           #{inv.id}
                         </button>
                       </td>
 
+                      {/* Customer Info */}
                       <td className="py-4 px-5">
-                        <div className="text-[12px] font-bold text-ink">{inv.customerName}</div>
+                        <div className="font-semibold text-slate-800 text-sm">{inv.customerName}</div>
                         {inv.customerEmail && (
-                          <div className="text-[10px] text-quill-soft mt-0.5 font-medium">{inv.customerEmail}</div>
+                          <div className="text-xs text-slate-400 mt-0.5">{inv.customerEmail}</div>
                         )}
                         {inv.hotelName && (
-                          <div className="text-[9px] bg-mist text-quill px-2 py-0.5 rounded-full font-bold w-max mt-1.5 uppercase tracking-wider">
+                          <div className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-bold w-max mt-1 uppercase tracking-wide">
                             {inv.hotelName}
                           </div>
                         )}
                       </td>
 
-                      <td className="nums py-4 px-5 text-[12px] text-quill font-semibold">{inv.date}</td>
-
-                      <td className="nums py-4 px-5 text-right text-[12px] font-bold text-ink">
-                        {currencySymbol}{money(inv.totalAmount)}
+                      {/* Date */}
+                      <td className="py-4 px-5 text-sm text-slate-600">
+                        {inv.date}
                       </td>
 
-                      <td className="nums py-4 px-5 text-right text-[12px] font-semibold text-[#3f9c68]">
-                        {currencySymbol}{money(inv.amountPaid)}
+                      {/* Total */}
+                      <td className="py-4 px-5 text-right font-bold text-slate-800 text-sm">
+                        {currencySymbol}{inv.totalAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                       </td>
 
-                      <td
-                        className={`nums py-4 px-5 text-right text-[12px] font-bold ${
-                          inv.balance === 0 ? 'text-[#3f9c68]' : inv.balance < 0 ? 'text-brand' : 'text-[#c0453c]'
-                        }`}
-                      >
+                      {/* Paid */}
+                      <td className="py-4 px-5 text-right text-emerald-600 font-medium text-sm">
+                        {currencySymbol}{inv.amountPaid.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      </td>
+
+                      {/* Balance */}
+                      <td className={`py-4 px-5 text-right font-bold text-sm ${
+                        inv.balance === 0 ? 'text-emerald-600' : inv.balance < 0 ? 'text-blue-600' : 'text-red-600'
+                      }`}>
                         {inv.balance < 0
-                          ? `-${currencySymbol}${money(Math.abs(inv.balance))}`
-                          : `${currencySymbol}${money(inv.balance)}`}
+                          ? `-${currencySymbol}${Math.abs(inv.balance).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+                          : `${currencySymbol}${inv.balance.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
                       </td>
 
+                      {/* Status */}
                       <td className="py-4 px-5 text-center">
-                        <span
-                          className={`inline-flex items-center px-3 py-1.5 rounded-full text-[10px] font-bold ${getStatusStyle(inv.status)}`}
-                        >
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${getStatusStyle(inv.status)}`}>
                           {inv.status}
                         </span>
                       </td>
 
+                      {/* Actions */}
                       <td className="py-4 px-5">
-                        <div className="flex items-center justify-center gap-0.5">
+                        <div className="flex items-center justify-center gap-1">
+                          {/* Quick Eye */}
                           <button
-                            type="button"
                             onClick={() => setSelectedInvoice(inv)}
-                            title="View invoice"
-                            className="w-8 h-8 rounded-full flex items-center justify-center text-quill hover:text-brand hover:bg-brand-pale transition-colors duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                            title="View Invoice"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                           >
-                            <Eye className="w-3.5 h-3.5" />
+                            <Eye className="w-4 h-4" />
                           </button>
 
+                          {/* Quick Edit */}
                           <button
-                            type="button"
                             onClick={() => onEdit(inv)}
-                            title="Edit invoice"
-                            className="w-8 h-8 rounded-full flex items-center justify-center text-quill hover:text-[#8a5c17] hover:bg-[#fdf3e2] transition-colors duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                            title="Edit Invoice"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
                           >
-                            <Edit2 className="w-3.5 h-3.5" />
+                            <Edit2 className="w-4 h-4" />
                           </button>
 
+                          {/* Quick Mark Paid */}
                           {inv.status !== 'Paid' && (
                             <button
-                              type="button"
                               onClick={() => onMarkAsPaid(inv)}
-                              title="Settle invoice"
-                              className="w-8 h-8 rounded-full flex items-center justify-center text-quill hover:text-[#2f6b48] hover:bg-[#e8f7ee] transition-colors duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                              title="Mark as Paid"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
                             >
-                              <CheckCircle className="w-3.5 h-3.5" />
+                              <CheckCircle className="w-4 h-4" />
                             </button>
                           )}
 
+                          {/* Quick Delete */}
                           <button
-                            type="button"
                             onClick={() => onDelete(inv)}
-                            title="Delete invoice"
-                            className="w-8 h-8 rounded-full flex items-center justify-center text-quill hover:text-[#c0453c] hover:bg-[#fdeeea] transition-colors duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                            title="Delete Invoice"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
@@ -367,269 +293,304 @@ export default function InvoiceList({ invoices, onEdit, onDelete, onMarkAsPaid, 
             </table>
           </div>
 
-          <div className="px-5 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <span className="nums text-[11px] font-bold text-quill">
-              Showing {Math.min(visibleCount, filteredInvoices.length)} of {filteredInvoices.length}
+          {/* Showing Count and Load More Button */}
+          <div className="px-5 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50">
+            <span className="text-xs font-semibold text-slate-500">
+              Showing {Math.min(visibleCount, filteredInvoices.length)} of {filteredInvoices.length} invoices
             </span>
             {filteredInvoices.length > visibleCount && (
               <button
-                type="button"
                 onClick={() => setVisibleCount((prev) => prev + 50)}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-brand hover:bg-brand-mid text-white font-bold px-5 py-2.5 rounded-full text-[11px] transition-colors duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl shadow-sm hover:shadow text-xs transition-all cursor-pointer"
               >
-                <Plus className="w-3.5 h-3.5" />
-                Load 50 more
+                <Plus className="w-4 h-4" />
+                Load More Invoices ({filteredInvoices.length - visibleCount} left)
               </button>
             )}
           </div>
         </div>
 
-        {/* Receipt preview */}
+        {/* Floating / Slide-out Detailed Booking Invoice Preview (Matches the screenshot exactly!) */}
         {selectedInvoice && (
-          <div
-            className="bg-shell rounded-[22px] overflow-hidden flex flex-col xl:col-span-2 animate-fade-in print:fixed print:inset-0 print:bg-white print:z-50 print:p-0 shadow-[0_24px_50px_-36px_rgba(19,17,38,0.6)]"
-            id="invoice-detail-preview"
-          >
-            <div className="bg-ink text-white px-5 py-4 flex items-center justify-between print:hidden">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-xl overflow-hidden flex flex-col xl:col-span-2 h-full animate-fade-in print:fixed print:inset-0 print:bg-white print:z-50 print:p-0" id="invoice-detail-preview">
+            {/* Detail Header (Controls) */}
+            <div className="bg-slate-900 text-white p-4 flex items-center justify-between print:hidden">
               <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-brand-soft" />
-                <span className="text-[13px] font-bold">Receipt #{selectedInvoice.id}</span>
+                <FileText className="w-4 h-4 text-blue-400" />
+                <span className="font-bold text-sm">Invoice Receipt #{selectedInvoice.id}</span>
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  type="button"
                   onClick={handlePrint}
-                  className="flex items-center gap-1.5 bg-white/12 hover:bg-white/22 text-[11px] font-bold px-4 py-2 rounded-full transition-colors duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-soft"
+                  className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
                 >
-                  <Printer className="w-3.5 h-3.5" /> Print
+                  <Printer className="w-3.5 h-3.5" /> Print Receipt
                 </button>
                 <button
-                  type="button"
                   onClick={() => setSelectedInvoice(null)}
-                  title="Close preview"
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-white/65 hover:text-white hover:bg-white/12 transition-colors duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-soft"
+                  className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
-            <div
-              id="invoice-receipt-body"
-              className="p-7 sm:p-8 overflow-y-auto flex-1 space-y-7 print:overflow-visible print:p-0 bg-shell"
-            >
-              {/* Branding */}
-              <div className="flex flex-wrap justify-between items-start gap-4 pb-6 border-b border-hairline">
-                <div className="flex items-center gap-3">
-                  {template?.companyLogo ? (
-                    <img src={template.companyLogo} alt="" className="w-12 h-12 object-contain rounded-xl" />
-                  ) : (
-                    <div className="w-12 h-12 bg-brand rounded-2xl flex items-center justify-center text-white font-extrabold text-[17px] font-display">
-                      {(template?.companyName || 'FN').slice(0, 2).toUpperCase()}
+            {/* The Invoice Preview Body (Styled to look exactly like the spreadsheet / FAIZ GROUP screenshot) */}
+            <div id="invoice-receipt-body" className="p-8 overflow-y-auto flex-1 space-y-8 print:overflow-visible print:p-0 bg-white">
+              
+              {/* Branding Header */}
+              <div className="flex justify-between items-start border-b border-slate-100 pb-6">
+                <div>
+                  {/* Blue Logo Block Accent */}
+                  <div className="flex items-center gap-3">
+                    {template?.companyLogo ? (
+                      <img src={template.companyLogo} alt="Logo" className="w-12 h-10 object-contain rounded-sm" />
+                    ) : (
+                      <div className="w-12 h-10 bg-blue-600 rounded-sm flex items-center justify-center text-white font-black text-xl tracking-tighter">
+                        {(template?.companyName || 'FG').slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <h1 className="text-3xl font-black italic tracking-wide text-slate-900 uppercase font-display">
+                        {template?.companyName || 'FAIZ GROUP'}
+                      </h1>
+                      <p className="text-xs text-slate-400 font-semibold uppercase tracking-widest">
+                        Luxury Hotel & Suites
+                      </p>
                     </div>
-                  )}
-                  <div>
-                    <h1 className="text-[26px] leading-none font-extrabold tracking-tight text-ink font-display">
-                      {template?.companyName || 'FINNOVA'}
-                    </h1>
-                    <p className="text-[10px] text-quill-soft font-bold uppercase tracking-wider mt-1.5">
-                      Smart Finances, Better Business
-                    </p>
                   </div>
                 </div>
 
-                <Waves className="w-9 h-9 text-brand-soft" />
+                {/* Stylish Wireframe Sphere SVG representing the exact visual pattern on the top-right */}
+                <div className="w-20 h-20 text-slate-400 opacity-80 select-none">
+                  <svg viewBox="0 0 100 100" className="w-full h-full">
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="0.5" />
+                    <circle cx="50" cy="50" r="30" fill="none" stroke="currentColor" strokeWidth="0.5" strokeDasharray="1,1" />
+                    <circle cx="50" cy="50" r="15" fill="none" stroke="currentColor" strokeWidth="0.5" />
+                    {/* Intersecting lines */}
+                    {Array.from({ length: 12 }).map((_, i) => {
+                      const angle = (i * 30 * Math.PI) / 180;
+                      const x1 = 50 + 45 * Math.cos(angle);
+                      const y1 = 50 + 45 * Math.sin(angle);
+                      const x2 = 50 - 45 * Math.cos(angle);
+                      const y2 = 50 - 45 * Math.sin(angle);
+                      return (
+                        <line
+                          key={i}
+                          x1={x1}
+                          y1={y1}
+                          x2={x2}
+                          y2={y2}
+                          stroke="currentColor"
+                          strokeWidth="0.3"
+                        />
+                      );
+                    })}
+                    {/* Inner web lines */}
+                    {Array.from({ length: 12 }).map((_, i) => {
+                      const angle1 = (i * 30 * Math.PI) / 180;
+                      const angle2 = (((i + 2) % 12) * 30 * Math.PI) / 180;
+                      return (
+                        <polygon
+                          key={i}
+                          points={`50,50 ${50 + 45 * Math.cos(angle1)},${50 + 45 * Math.sin(angle1)} ${50 + 45 * Math.cos(angle2)},${50 + 45 * Math.sin(angle2)}`}
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="0.25"
+                        />
+                      );
+                    })}
+                  </svg>
+                </div>
               </div>
 
-              {/* Guest + invoice meta */}
-              <div className="flex flex-col sm:flex-row justify-between items-start gap-5">
-                <div className="space-y-1.5">
-                  <span className="text-[10px] font-bold text-quill-soft uppercase tracking-wider">Billed to</span>
-                  <div className="text-[19px] font-extrabold text-ink tracking-tight font-display">
-                    {selectedInvoice.customerName}
+              {/* Guest & Invoice Metadata Block */}
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                <div className="space-y-1">
+                  <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Guest Information:</div>
+                  <div className="text-xl font-black text-slate-800 tracking-tight flex items-center gap-1 text-slate-800 uppercase font-display">
+                    NAME: {selectedInvoice.customerName}
                   </div>
                   {selectedInvoice.customerEmail && (
-                    <div className="text-[12px] text-quill font-semibold">{selectedInvoice.customerEmail}</div>
+                    <div className="text-sm text-slate-500 font-medium">
+                      Email: {selectedInvoice.customerEmail}
+                    </div>
                   )}
                   {selectedInvoice.hotelName && (
-                    <div className="text-[12px] text-quill font-semibold">
-                      <span className="text-quill-soft">Property: </span>
-                      {selectedInvoice.hotelName}
+                    <div className="text-sm text-slate-600 font-bold flex items-center gap-1 mt-0.5">
+                      <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Hotel:</span> {selectedInvoice.hotelName}
                     </div>
                   )}
                 </div>
 
-                <div className="bg-brand text-white rounded-[18px] overflow-hidden flex min-w-[240px]">
-                  <div className="p-4 flex-1 text-center border-r border-white/15">
-                    <div className="text-[9px] font-bold uppercase tracking-wider text-white/65">Invoice no</div>
-                    <div className="nums text-[15px] font-extrabold mt-1">{selectedInvoice.id}</div>
+                {/* Blue Block representing the "Invoice No / Date" container */}
+                <div className="bg-blue-600 text-white rounded-lg overflow-hidden shadow-sm flex min-w-[240px]">
+                  <div className="bg-blue-700/50 p-3 flex-1 border-r border-blue-500/30 text-center">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-blue-100 opacity-90">Invoice No:</div>
+                    <div className="text-lg font-black tracking-wider mt-0.5">{selectedInvoice.id}</div>
                   </div>
-                  <div className="p-4 flex-1 text-center">
-                    <div className="text-[9px] font-bold uppercase tracking-wider text-white/65">Date</div>
-                    <div className="nums text-[13px] font-bold mt-1.5">{selectedInvoice.date}</div>
+                  <div className="p-3 flex-1 text-center">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-blue-100 opacity-90">Date:</div>
+                    <div className="text-sm font-bold mt-1">{selectedInvoice.date}</div>
                   </div>
                 </div>
               </div>
 
-              {/* Items */}
-              <div className="bg-mist rounded-[18px] overflow-hidden">
+              {/* Main Booking Items Table (Formatted exactly like the spreadsheet) */}
+              <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="text-quill font-bold text-[10px] uppercase tracking-wider">
-                      <th className="py-3.5 px-4">Room</th>
-                      <th className="py-3.5 px-4 text-center">Qty</th>
-                      <th className="py-3.5 px-4 text-center">Check-in</th>
-                      <th className="py-3.5 px-4 text-center">Check-out</th>
-                      <th className="py-3.5 px-4 text-center">Nights</th>
-                      <th className="py-3.5 px-4 text-right">Price</th>
-                      <th className="py-3.5 px-4 text-right">Amount</th>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 font-black text-xs uppercase tracking-wider">
+                      <th className="py-3 px-4 border-r border-slate-200">Room</th>
+                      <th className="py-3 px-4 text-center border-r border-slate-200 w-24">Quantity</th>
+                      <th className="py-3 px-4 text-center border-r border-slate-200">Check-In</th>
+                      <th className="py-3 px-4 text-center border-r border-slate-200">Check-Out</th>
+                      <th className="py-3 px-4 text-center border-r border-slate-200 w-20">Nights</th>
+                      <th className="py-3 px-4 text-right border-r border-slate-200 w-28">Price</th>
+                      <th className="py-3 px-4 text-right w-36">Total Amount</th>
                     </tr>
                   </thead>
-                  <tbody className="text-ink text-[12px]">
+                  <tbody className="divide-y divide-slate-200 text-slate-800 text-sm">
                     {selectedInvoice.items.length === 0 ? (
-                      <tr className="bg-shell border-t-4 border-mist">
-                        <td colSpan={7} className="py-8 px-4 text-center">
-                          <p className="text-[12px] font-bold text-ink">No line items yet</p>
-                          <p className="text-[11px] text-quill-soft mt-1 font-medium">
-                            Add rooms or services to build this invoice.
-                          </p>
+                      <tr>
+                        <td colSpan={7} className="py-8 text-center text-slate-400 font-medium">
+                          No booking items added to this invoice.
                         </td>
                       </tr>
                     ) : (
                       selectedInvoice.items.map((item, idx) => (
-                        <tr key={idx} className="bg-shell border-t-4 border-mist">
-                          <td className="py-3.5 px-4 font-bold">{item.roomType || 'Standard room'}</td>
-                          <td className="nums py-3.5 px-4 text-center font-semibold">{item.quantity}</td>
-                          <td className="nums py-3.5 px-4 text-center text-[11px] text-quill font-semibold">
-                            {item.checkIn || '—'}
+                        <tr key={idx} className="hover:bg-slate-50/30 transition-colors">
+                          <td className="py-3 px-4 font-semibold text-slate-800 border-r border-slate-200">{item.roomType || 'Standard Room'}</td>
+                          <td className="py-3 px-4 text-center border-r border-slate-200 font-medium">{item.quantity}</td>
+                          <td className="py-3 px-4 text-center border-r border-slate-200 font-mono text-xs">{item.checkIn || '-'}</td>
+                          <td className="py-3 px-4 text-center border-r border-slate-200 font-mono text-xs">{item.checkOut || '-'}</td>
+                          <td className="py-3 px-4 text-center border-r border-slate-200 font-medium">{item.nights}</td>
+                          <td className="py-3 px-4 text-right border-r border-slate-200 font-mono">
+                            {currencySymbol}{item.price.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                           </td>
-                          <td className="nums py-3.5 px-4 text-center text-[11px] text-quill font-semibold">
-                            {item.checkOut || '—'}
-                          </td>
-                          <td className="nums py-3.5 px-4 text-center font-semibold">{item.nights}</td>
-                          <td className="nums py-3.5 px-4 text-right font-semibold">
-                            {currencySymbol}{money(item.price)}
-                          </td>
-                          <td className="nums py-3.5 px-4 text-right font-bold">
-                            {currencySymbol}{money(item.total)}
+                          <td className="py-3 px-4 text-right font-bold text-slate-900 font-mono">
+                            {currencySymbol}{item.total.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                           </td>
                         </tr>
                       ))
                     )}
+                    {/* Fill blank rows for a authentic spreadsheet feeling if list is short */}
+                    {selectedInvoice.items.length < 4 && 
+                      Array.from({ length: 4 - selectedInvoice.items.length }).map((_, i) => (
+                        <tr key={`empty-${i}`} className="h-9">
+                          <td className="py-2 px-4 border-r border-slate-200"></td>
+                          <td className="py-2 px-4 border-r border-slate-200"></td>
+                          <td className="py-2 px-4 border-r border-slate-200"></td>
+                          <td className="py-2 px-4 border-r border-slate-200"></td>
+                          <td className="py-2 px-4 border-r border-slate-200 text-center text-xs text-slate-300 font-mono">0</td>
+                          <td className="py-2 px-4 border-r border-slate-200"></td>
+                          <td className="py-2 px-4 text-right text-xs text-slate-300 font-mono">{currencySymbol}0</td>
+                        </tr>
+                      ))
+                    }
                   </tbody>
                 </table>
               </div>
 
-              {/* Terms + totals */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-7">
-                <div className="space-y-5">
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-quill-soft block mb-1.5">
-                      Terms &amp; conditions
-                    </span>
-                    <p className="text-[11px] text-quill leading-relaxed font-medium whitespace-pre-line">
-                      {template?.termsAndConditions ||
-                        'Any delay in payment will be subject to a late payment fee. Thank you for your residency.'}
+              {/* Subtotals & Payment Info Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4">
+                
+                {/* Left Column: Terms, Bank Details, Contact */}
+                <div className="space-y-6">
+                  {/* Terms & Conditions */}
+                  <div className="text-xs text-slate-500">
+                    <span className="font-bold uppercase tracking-wider text-slate-700 block mb-1">Terms & Conditions:</span>
+                    <p className="leading-relaxed font-medium whitespace-pre-line">
+                      {template?.termsAndConditions || 'Any delay in payment will be subjected to a late payment fee. Thank you for your residency.'}
                     </p>
                   </div>
 
-                  <div className="bg-mist p-4 rounded-[16px]">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-quill-soft block mb-1.5">
-                      Payment information
-                    </span>
-                    <p className="text-[11px] text-ink font-semibold whitespace-pre-line leading-relaxed">
-                      {template?.paymentDetails ||
-                        'Beneficiary: Bank of America\nSwift Sort\nAccount No.: 324 6654 7766 9992'}
+                  {/* Payment Info */}
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-xs text-slate-600 space-y-1.5">
+                    <span className="font-bold uppercase tracking-wider text-slate-800 block mb-1">Payment Information:</span>
+                    <p className="font-semibold text-slate-700 whitespace-pre-line">
+                      {template?.paymentDetails || 'Beneficiaire Bank of America\nSwift Sort\nAccount No.: 324 6654 7766 9992'}
                     </p>
                   </div>
                 </div>
 
-                <div className="space-y-3.5">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[12px] font-semibold text-quill">Total amount</span>
-                    <span className="nums text-[17px] font-extrabold text-ink font-display">
-                      {currencySymbol}{money(selectedInvoice.totalAmount)}
+                {/* Right Column: Pricing & Balance Box */}
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center text-sm font-semibold text-slate-600">
+                    <span>Total Amount:</span>
+                    <span className="text-xl font-extrabold text-slate-900 font-mono">
+                      {currencySymbol}{selectedInvoice.totalAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </span>
                   </div>
 
-                  <div className="flex justify-between items-start pt-3 border-t border-hairline">
-                    <span className="text-[12px] font-semibold text-quill">Amount paid</span>
+                  <div className="flex justify-between items-center text-sm text-slate-600 border-t border-slate-100 pt-3">
+                    <span className="font-medium">Amount Paid:</span>
                     <div className="text-right">
-                      <span className="nums text-[15px] font-bold text-[#3f9c68]">
-                        {currencySymbol}{money(selectedInvoice.amountPaid)}
+                      <span className="text-base font-bold text-emerald-600 font-mono">
+                        {currencySymbol}{selectedInvoice.amountPaid.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                       </span>
-                      <div className="nums text-[10px] text-quill-soft mt-0.5 font-semibold">
-                        {selectedInvoice.paymentDate || selectedInvoice.date}
-                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">Date: {selectedInvoice.paymentDate || selectedInvoice.date}</div>
                     </div>
                   </div>
 
-                  <div
-                    className={`${
-                      selectedInvoice.balance === 0
-                        ? 'bg-[#3f9c68]'
-                        : selectedInvoice.balance < 0
-                          ? 'bg-brand'
-                          : 'bg-[#c0453c]'
-                    } text-white px-5 py-4 rounded-[16px] flex justify-between items-center`}
-                  >
-                    <span className="text-[11px] font-bold uppercase tracking-wider">
-                      {selectedInvoice.balance < 0
-                        ? 'Change due'
-                        : selectedInvoice.balance === 0
-                          ? 'Paid in full'
-                          : 'Balance due'}
+                  {/* Solid Balance Banner */}
+                  <div className={`${
+                    selectedInvoice.balance === 0 ? 'bg-emerald-600 shadow-emerald-100' : selectedInvoice.balance < 0 ? 'bg-blue-600 shadow-blue-100' : 'bg-red-600 shadow-red-100'
+                  } text-white p-3.5 rounded-lg flex justify-between items-center font-display shadow-md transition-colors duration-200`}>
+                    <span className="font-black italic tracking-wider uppercase text-sm">
+                      {selectedInvoice.balance < 0 ? 'CHANGE DUE' : selectedInvoice.balance === 0 ? 'PAID IN FULL' : 'BALANCE'}
                     </span>
-                    <span className="nums text-[17px] font-extrabold font-display">
+                    <span className="text-xl font-black tracking-widest font-mono">
                       {selectedInvoice.balance < 0
-                        ? `-${currencySymbol}${money(Math.abs(selectedInvoice.balance))}`
-                        : `${currencySymbol}${money(selectedInvoice.balance)}`}
+                        ? `-${currencySymbol}${Math.abs(selectedInvoice.balance).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+                        : `${currencySymbol}${selectedInvoice.balance.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
                     </span>
                   </div>
                 </div>
+
               </div>
 
-              {/* Contact footer */}
-              <div className="border-t border-hairline pt-5 flex flex-col md:flex-row justify-between items-center gap-3 text-[11px] text-quill font-semibold">
-                <div className="flex items-center gap-2">
-                  <Phone className="w-3.5 h-3.5 text-brand" />
-                  <span>123-456-7890</span>
+              {/* Contact Footer matching phone, mail, address from the screenshot */}
+              <div className="border-t border-slate-100 pt-6 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500 pb-2">
+                <div className="flex items-center gap-2 font-medium">
+                  <Phone className="w-4 h-4 text-blue-600" />
+                  <span>Phone: 123-456-7890</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Mail className="w-3.5 h-3.5 text-brand" />
-                  <span>billing@finnova.com</span>
+                <div className="flex items-center gap-2 font-medium">
+                  <Mail className="w-4 h-4 text-blue-600" />
+                  <span>Mail: Albert@invoicefly.com</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-3.5 h-3.5 text-brand" />
-                  <span>123 Anywhere St., Any City</span>
+                <div className="flex items-center gap-2 font-medium">
+                  <MapPin className="w-4 h-4 text-blue-600" />
+                  <span>Address: 123 Anywhere St., Any City</span>
                 </div>
               </div>
+
             </div>
 
-            <div className="bg-mist px-5 py-4 flex gap-2 print:hidden justify-end">
+            {/* Quick action triggers at bottom of sheet preview */}
+            <div className="bg-slate-50 border-t border-slate-100 p-4 flex gap-2 print:hidden justify-end">
               {selectedInvoice.status !== 'Paid' && (
                 <button
-                  type="button"
                   onClick={() => {
                     onMarkAsPaid(selectedInvoice);
-                    setSelectedInvoice({
-                      ...selectedInvoice,
+                    setSelectedInvoice({ 
+                      ...selectedInvoice, 
                       status: 'Paid',
                       amountPaid: selectedInvoice.totalAmount,
                       balance: 0
                     });
                   }}
-                  className="flex items-center justify-center gap-2 bg-[#3f9c68] hover:bg-[#35855a] text-white text-[11px] font-bold px-5 py-3 rounded-full transition-colors duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                  className="flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black px-4 py-2.5 rounded-xl transition-colors shadow-sm"
                 >
-                  <CheckCircle className="w-3.5 h-3.5" /> Settle in full
+                  <CheckCircle className="w-3.5 h-3.5" /> Mark Full Paid
                 </button>
               )}
               <button
-                type="button"
                 onClick={() => onEdit(selectedInvoice)}
-                className="flex items-center justify-center gap-2 bg-shell hover:bg-mist-2 text-ink text-[11px] font-bold px-5 py-3 rounded-full transition-colors duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                className="flex items-center justify-center gap-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl transition-colors"
               >
-                <Edit2 className="w-3.5 h-3.5 text-quill" /> Edit invoice
+                <Edit2 className="w-3.5 h-3.5 text-slate-400" /> Edit Invoice
               </button>
             </div>
           </div>
