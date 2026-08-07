@@ -325,16 +325,14 @@ ALTER TABLE user_settings DISABLE ROW LEVEL SECURITY;`;
     new Set(invoices.map((inv) => inv.customerName).filter(Boolean))
   ).sort();
 
-  const months = Array.from(
-    new Set(
-      invoices
-        .map((inv) => {
-          const d = new Date(inv.date);
-          return isNaN(d.getTime()) ? '' : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        })
-        .filter(Boolean)
-    )
-  ).sort();
+  const months = [...new Set(
+    invoices
+      .map((inv) => {
+        const d = new Date(inv.date);
+        return isNaN(d.getTime()) ? '' : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      })
+      .filter((v): v is string => Boolean(v))
+  )].sort();
 
   const monthLabel = (key: string) => {
     const [y, m] = key.split('-');
