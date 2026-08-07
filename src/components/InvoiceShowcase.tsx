@@ -23,7 +23,7 @@ interface InvoiceShowcaseProps {
 type ShowcaseTab = 'all' | 'draft' | 'unpaid';
 
 const money = (n: number) =>
-  n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
 const relativeLabel = (dateStr: string) => {
   const d = new Date(dateStr);
