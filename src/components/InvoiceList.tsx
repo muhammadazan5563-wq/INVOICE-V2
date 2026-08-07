@@ -59,6 +59,37 @@ export default function InvoiceList({ invoices, onEdit, onDelete, onMarkAsPaid, 
     const printContent = document.getElementById('invoice-receipt-body')?.cloneNode(true) as HTMLElement;
     if (!printContent) return;
 
+    // Force responsive classes to their expanded state for print
+    const forceResponsiveClasses = (el: HTMLElement) => {
+      const all = el.querySelectorAll('*');
+      const process = (node: Element) => {
+        const cl = node.classList;
+        // lg:grid-cols-2 → grid-cols-2
+        if (cl.contains('lg:grid-cols-2')) {
+          cl.remove('grid-cols-1', 'lg:grid-cols-2');
+          cl.add('grid-cols-2');
+        }
+        // sm:flex-row → flex-row
+        if (cl.contains('sm:flex-row')) {
+          cl.remove('flex-col', 'sm:flex-row');
+          cl.add('flex-row');
+        }
+        // md:flex-row → flex-row
+        if (cl.contains('md:flex-row')) {
+          cl.remove('flex-col', 'md:flex-row');
+          cl.add('flex-row');
+        }
+        // sm:p-8 → p-8
+        if (cl.contains('sm:p-8')) {
+          cl.remove('sm:p-8');
+          cl.add('p-8');
+        }
+      };
+      process(el);
+      all.forEach(n => process(n));
+    };
+    forceResponsiveClasses(printContent);
+
     const printWindow = window.open('', '_blank');
     if (printWindow) {
       printWindow.document.write(`
@@ -131,6 +162,14 @@ export default function InvoiceList({ invoices, onEdit, onDelete, onMarkAsPaid, 
               .text-brand-soft { color: #8a7bf5 !important; }
               .border-hairline { border-color: #e6e4f0 !important; }
               .border-mist { border-color: #f6f5fb !important; }
+
+              /* Ensure grid-cols-2 works (DOM manipulation removes responsive prefixes) */
+              .grid-cols-2 {
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+              }
+              .flex-row {
+                flex-direction: row !important;
+              }
 
               @media print {
                 body { padding: 20px 0; }
