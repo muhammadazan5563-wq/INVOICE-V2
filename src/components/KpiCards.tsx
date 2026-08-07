@@ -108,9 +108,6 @@ export default function KpiCards({
             <span className="nums text-[42px] sm:text-[48px] leading-none font-extrabold text-ink tracking-tight">
               {currencySymbol}{money(totalRevenue)}
             </span>
-            <span className="nums text-[20px] font-bold text-quill-soft">
-              .{String(Math.round((totalRevenue % 1) * 100)).padStart(2, '0')}
-            </span>
           </div>
 
           {/* Action Buttons */}
