@@ -105,7 +105,7 @@ export default function KpiCards({
         <div className="bg-shell p-6 sm:p-7 rounded-[26px] shadow-[0_18px_40px_-32px_rgba(19,17,38,0.5)]">
           <span className="text-[10px] font-bold text-quill-soft uppercase tracking-widest">Total Revenue</span>
           <div className="mt-3 flex items-baseline gap-1">
-            <span className="nums text-[42px] sm:text-[48px] leading-none font-extrabold text-ink tracking-tight font-display">
+            <span className="nums text-[42px] sm:text-[48px] leading-none font-extrabold text-ink tracking-tight">
               {currencySymbol}{money(totalRevenue)}
             </span>
             <span className="nums text-[20px] font-bold text-quill-soft">
@@ -176,7 +176,7 @@ export default function KpiCards({
               </div>
             </div>
             <div className="flex items-baseline gap-1">
-              <span className="nums text-[26px] font-extrabold text-ink tracking-tight font-display">
+              <span className="nums text-[26px] font-extrabold text-ink tracking-tight">
                 {currencySymbol}{money(totalDueAmount)}
               </span>
             </div>
@@ -200,7 +200,7 @@ export default function KpiCards({
               </div>
             </div>
             <div className="flex items-baseline gap-1">
-              <span className="nums text-[26px] font-extrabold text-ink tracking-tight font-display">
+              <span className="nums text-[26px] font-extrabold text-ink tracking-tight">
                 {currencySymbol}{money(overdueAmount)}
               </span>
             </div>
@@ -220,12 +220,12 @@ export default function KpiCards({
       {/* ═══ MIDDLE COLUMN: Today Collection ═══ */}
       <div className="lg:col-span-2 bg-shell p-6 sm:p-7 rounded-[26px] shadow-[0_18px_40px_-32px_rgba(19,17,38,0.5)] flex flex-col">
         <div className="flex justify-between items-center mb-2">
-          <h3 className="text-[15px] font-extrabold text-ink font-display">Today Collection</h3>
+          <h3 className="text-[15px] font-extrabold text-ink">Today Collection</h3>
           <TrendingUp className="w-4 h-4 text-quill-soft" />
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center py-4">
-          <span className="nums text-[34px] font-extrabold text-ink font-display">
+          <span className="nums text-[34px] font-extrabold text-ink">
             {currencySymbol}{money(todayTotal)}
           </span>
           <p className="text-[12px] text-quill-soft font-medium mt-2">Collected today</p>
@@ -248,7 +248,7 @@ export default function KpiCards({
         {/* Collection Health Gauge */}
         <div className="bg-shell p-5 rounded-[26px] shadow-[0_18px_40px_-32px_rgba(19,17,38,0.5)] flex flex-col flex-1">
           <div className="flex justify-between items-center mb-1">
-            <h3 className="text-[15px] font-extrabold text-ink font-display">Collection Health</h3>
+            <h3 className="text-[15px] font-extrabold text-ink">Collection Health</h3>
             <TrendingUp className="w-4 h-4 text-quill-soft" />
           </div>
 
@@ -266,7 +266,7 @@ export default function KpiCards({
             </svg>
 
             <div className="text-center -mt-4">
-              <span className="nums text-[28px] font-extrabold text-ink font-display">{collectionRate.toFixed(0)}%</span>
+              <span className="nums text-[28px] font-extrabold text-ink">{collectionRate.toFixed(0)}%</span>
               <p className="text-[11px] font-bold mt-0.5" style={{ color: collectionColor }}>{collectionLabel}</p>
             </div>
           </div>
@@ -279,7 +279,7 @@ export default function KpiCards({
         {/* Summary Card */}
         <div className="bg-shell p-5 rounded-[26px] shadow-[0_18px_40px_-32px_rgba(19,17,38,0.5)] flex flex-col">
           <div className="flex justify-between items-center mb-3">
-            <h3 className="text-[15px] font-extrabold text-ink font-display">Summary</h3>
+            <h3 className="text-[15px] font-extrabold text-ink">Summary</h3>
             <Receipt className="w-4 h-4 text-quill-soft" />
           </div>
           <div className="space-y-2.5">
