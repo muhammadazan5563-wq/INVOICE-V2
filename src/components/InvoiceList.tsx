@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Invoice } from '../types';
 import { InvoiceTemplate, getCurrencySymbol } from '../lib/settings';
 import { Search, Eye, Edit2, CheckCircle, Trash2, Printer, FileText, Mail, Phone, MapPin, X, Plus, Waves } from 'lucide-react';
+import InvoiceQRCode from './InvoiceQRCode';
 
 interface InvoiceListProps {
   invoices: Invoice[];
@@ -688,6 +689,17 @@ export default function InvoiceList({ invoices, onEdit, onDelete, onMarkAsPaid, 
                     </span>
                   </div>
                 </div>
+              </div>
+
+              {/* QR Code for public tracking */}
+              <div className="border-t border-hairline pt-5 flex items-center justify-between gap-4">
+                <div className="flex-1">
+                  <p className="text-[10px] font-bold text-quill-soft uppercase tracking-wider mb-1">Track Online</p>
+                  <p className="text-[11px] text-quill font-medium leading-relaxed">
+                    Scan this QR code or visit the tracking page to check your invoice status anytime.
+                  </p>
+                </div>
+                <InvoiceQRCode invoiceId={selectedInvoice.id} size={80} />
               </div>
 
               {/* Contact footer */}
