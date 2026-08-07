@@ -3,9 +3,11 @@ import { Invoice } from '../types';
 
 interface ChartsProps {
   invoices: Invoice[];
+  currencyCode?: string;
+  currencySymbol?: string;
 }
 
-export default function Charts({ invoices }: ChartsProps) {
+export default function Charts({ invoices, currencyCode = 'USD', currencySymbol = '$' }: ChartsProps) {
   // Revenue Over Time grouped by Month-Year
   const monthlyDataMap: { [key: string]: { month: string; revenue: number; count: number } } = {};
 
@@ -59,7 +61,7 @@ export default function Charts({ invoices }: ChartsProps) {
     .slice(0, 5);
 
   const formatCurrency = (value: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: currencyCode, maximumFractionDigits: 0 }).format(value);
 
   const tooltipStyle = {
     background: '#131126',
@@ -71,6 +73,9 @@ export default function Charts({ invoices }: ChartsProps) {
     fontSize: '12px',
     fontWeight: 600,
   } as const;
+
+  const tooltipLabelStyle = { color: '#FFF', fontWeight: 700, marginBottom: '2px' } as const;
+  const tooltipItemStyle = { color: '#FFF' } as const;
 
   const axisTick = { fill: '#9d99b4', fontSize: 11, fontWeight: 600 };
 
@@ -100,9 +105,9 @@ export default function Charts({ invoices }: ChartsProps) {
                   tick={axisTick}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(val) => `$${val}`}
+                  tickFormatter={(val) => `${currencySymbol}${val}`}
                 />
-                <Tooltip formatter={(value: any) => [formatCurrency(value), 'Revenue']} contentStyle={tooltipStyle} />
+                <Tooltip formatter={(value: any) => [formatCurrency(value), 'Revenue']} contentStyle={tooltipStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle} />
                 <Area
                   type="monotone"
                   dataKey="revenue"
@@ -135,7 +140,7 @@ export default function Charts({ invoices }: ChartsProps) {
                       <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: any) => [formatCurrency(value), 'Value']} contentStyle={tooltipStyle} />
+                  <Tooltip formatter={(value: any) => [formatCurrency(value), 'Value']} contentStyle={tooltipStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle} />
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -175,12 +180,14 @@ export default function Charts({ invoices }: ChartsProps) {
                   tick={axisTick}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(val) => `$${val}`}
+                  tickFormatter={(val) => `${currencySymbol}${val}`}
                 />
                 <YAxis type="category" dataKey="name" stroke="transparent" tick={axisTick} tickLine={false} axisLine={false} width={110} />
                 <Tooltip
                   formatter={(value: any) => [formatCurrency(value), 'Revenue']}
                   contentStyle={tooltipStyle}
+                  labelStyle={tooltipLabelStyle}
+                  itemStyle={tooltipItemStyle}
                   cursor={{ fill: 'rgba(90,73,230,0.06)' }}
                 />
                 <Bar dataKey="revenue" radius={[0, 10, 10, 0]} maxBarSize={26}>
