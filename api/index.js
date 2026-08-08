@@ -328,6 +328,43 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, rowsAdded: newRows.length, startId: nextId });
     }
 
+    // GET /api/public-invoice/:id - Public endpoint to fetch a single invoice
+    const publicInvoiceMatch = path.match(/^\/api\/public-invoice\/(.+)$/);
+    if (publicInvoiceMatch && method === "GET") {
+      const id = decodeURIComponent(publicInvoiceMatch[1]).trim();
+      if (!id) {
+        return res.status(400).json({ error: "Invoice ID is required" });
+      }
+
+      const { data, error } = await supabase
+        .from("invoices")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error || !data) {
+        return res.status(404).json({ error: "Invoice not found" });
+      }
+
+      const invoice = {
+        id: data.id,
+        date: data.date,
+        customerName: data.customer_name,
+        customerEmail: data.customer_email || "",
+        hotelName: data.hotel_name || "",
+        totalAmount: Number(data.total_amount || 0),
+        amountPaid: Number(data.amount_paid || 0),
+        paymentDate: data.payment_date || "",
+        balance: Number(data.balance || 0),
+        status: data.status || "Pending",
+        notes: data.notes || "",
+        items: data.items || [],
+        payments: data.payments || [],
+      };
+
+      return res.status(200).json(invoice);
+    }
+
     // GET /api/lookup-invoice/:invoiceNumber
     const lookupMatch = path.match(/^\/api\/lookup-invoice\/(.+)$/);
     if (lookupMatch && method === "GET") {
