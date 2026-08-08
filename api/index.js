@@ -21,6 +21,22 @@ export default async function handler(req, res) {
   const path = url.replace(/\?.*$/, ""); // Remove query params for matching
 
   try {
+    // GET /api/debug - Diagnostic endpoint to verify Supabase connection
+    if (path === "/api/debug" && method === "GET") {
+      const { data, error, count } = await supabase
+        .from("invoices")
+        .select("id", { count: "exact" });
+      
+      return res.status(200).json({
+        supabase_url: supabaseUrl,
+        key_prefix: supabaseKey ? supabaseKey.substring(0, 15) + "..." : "MISSING",
+        connection: error ? "FAILED" : "OK",
+        error: error ? error.message : null,
+        invoice_count: data ? data.length : 0,
+        invoice_ids: data ? data.map((r) => r.id) : [],
+      });
+    }
+
     // GET /api/invoices
     if (path === "/api/invoices" && method === "GET") {
       const { data, error } = await supabase
@@ -331,19 +347,64 @@ export default async function handler(req, res) {
     // GET /api/public-invoice/:id - Public endpoint to fetch a single invoice
     const publicInvoiceMatch = path.match(/^\/api\/public-invoice\/(.+)$/);
     if (publicInvoiceMatch && method === "GET") {
-      const id = decodeURIComponent(publicInvoiceMatch[1]).trim();
-      if (!id) {
+      const rawId = decodeURIComponent(publicInvoiceMatch[1]).trim();
+      if (!rawId) {
         return res.status(400).json({ error: "Invoice ID is required" });
       }
 
-      const { data, error } = await supabase
+      // Fetch ALL invoices and do flexible matching (most reliable approach)
+      const { data: allInvoices, error: fetchAllError } = await supabase
         .from("invoices")
-        .select("*")
-        .eq("id", id)
-        .single();
+        .select("*");
 
-      if (error || !data) {
-        return res.status(404).json({ error: "Invoice not found" });
+      if (fetchAllError) {
+        console.error("[public-invoice] Supabase error:", fetchAllError);
+        return res.status(500).json({ 
+          error: "Database query failed", 
+          details: fetchAllError.message,
+          hint: fetchAllError.hint || null
+        });
+      }
+
+      if (!allInvoices || allInvoices.length === 0) {
+        return res.status(404).json({ 
+          error: "No invoices exist in database",
+          searched: rawId,
+          debug_url: supabaseUrl
+        });
+      }
+
+      // Flexible matching: exact, case-insensitive, with/without prefix
+      const rawIdUpper = rawId.toUpperCase();
+      let numericPart = rawId;
+      if (rawIdUpper.startsWith("INV-") || rawIdUpper.startsWith("REF-")) {
+        numericPart = rawId.substring(4);
+      }
+
+      let data = allInvoices.find((inv) => {
+        const invId = (inv.id || "").toString();
+        const invIdUpper = invId.toUpperCase();
+        // Exact match
+        if (invId === rawId) return true;
+        // Case-insensitive match
+        if (invIdUpper === rawIdUpper) return true;
+        // Input has no prefix, DB has INV- prefix
+        if (invIdUpper === `INV-${rawIdUpper}`) return true;
+        // Input has prefix, DB has no prefix
+        if (`INV-${invIdUpper}` === rawIdUpper) return true;
+        // Match numeric part
+        const invNumeric = invIdUpper.startsWith("INV-") ? invId.substring(4) : invId;
+        if (invNumeric === numericPart) return true;
+        return false;
+      });
+
+      if (!data) {
+        return res.status(404).json({ 
+          error: "Invoice not found", 
+          searched: rawId,
+          total_invoices: allInvoices.length,
+          sample_ids: allInvoices.slice(0, 5).map((i) => i.id)
+        });
       }
 
       const invoice = {
