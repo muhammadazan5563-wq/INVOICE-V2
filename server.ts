@@ -439,6 +439,48 @@ app.post("/api/sync-booking-sheet", async (req, res) => {
   }
 });
 
+// GET /api/public-invoice/:id - Public endpoint to fetch a single invoice from Supabase (no auth required)
+app.get("/api/public-invoice/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id || !id.trim()) {
+      return res.status(400).json({ error: "Invoice ID is required" });
+    }
+
+    const { data, error } = await supabase
+      .from("invoices")
+      .select("*")
+      .eq("id", id.trim())
+      .single();
+
+    if (error || !data) {
+      return res.status(404).json({ error: "Invoice not found" });
+    }
+
+    // Map to camelCase
+    const invoice = {
+      id: data.id,
+      date: data.date,
+      customerName: data.customer_name,
+      customerEmail: data.customer_email || "",
+      hotelName: data.hotel_name || "",
+      totalAmount: Number(data.total_amount || 0),
+      amountPaid: Number(data.amount_paid || 0),
+      paymentDate: data.payment_date || "",
+      balance: Number(data.balance || 0),
+      status: data.status || "Pending",
+      notes: data.notes || "",
+      items: data.items || [],
+      payments: data.payments || [],
+    };
+
+    res.json(invoice);
+  } catch (error: any) {
+    console.error("Error in GET /api/public-invoice:", error);
+    res.status(500).json({ error: error.message || "Failed to fetch invoice" });
+  }
+});
+
 // GET /api/lookup-invoice/:invoiceNumber - Public endpoint to lookup invoice from MASTER sheet
 app.get("/api/lookup-invoice/:invoiceNumber", async (req, res) => {
   try {
