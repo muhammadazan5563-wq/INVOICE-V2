@@ -90,10 +90,18 @@ export default function InvoicePublicView() {
 
     const fetchData = async () => {
       try {
+        // Normalize the invoice ID - strip prefixes for the lookup
+        let lookupId = invoiceId!;
+        if (lookupId.toUpperCase().startsWith("INV-")) {
+          lookupId = lookupId.substring(4);
+        } else if (lookupId.toUpperCase().startsWith("REF-")) {
+          lookupId = lookupId.substring(4);
+        }
+
         // Fetch both invoice record and spreadsheet data in parallel
         const [invoiceRes, sheetRes] = await Promise.allSettled([
-          fetch(`/api/public-invoice/${encodeURIComponent(invoiceId)}`),
-          fetch(`/api/lookup-invoice/${encodeURIComponent(invoiceId)}`),
+          fetch(`/api/public-invoice/${encodeURIComponent(invoiceId!)}`),
+          fetch(`/api/lookup-invoice/${encodeURIComponent(lookupId)}`),
         ]);
 
         // Process invoice record
