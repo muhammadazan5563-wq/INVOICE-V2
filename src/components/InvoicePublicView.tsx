@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
 import {
   ArrowLeft,
   FileText,
@@ -91,7 +90,7 @@ export default function InvoicePublicView() {
 
     const fetchData = async () => {
       try {
-        // Normalize the invoice ID - strip prefixes for the lookup
+        // Normalize the invoice ID - strip prefixes for the spreadsheet lookup
         let lookupId = invoiceId!;
         if (lookupId.toUpperCase().startsWith("INV-")) {
           lookupId = lookupId.substring(4);
@@ -99,16 +98,20 @@ export default function InvoicePublicView() {
           lookupId = lookupId.substring(4);
         }
 
-        // Fetch both invoice record and spreadsheet data in parallel
+        // Fetch both invoice record (server API) and spreadsheet data in parallel
         const [invoiceRes, sheetRes] = await Promise.allSettled([
           fetch(`/api/public-invoice/${encodeURIComponent(invoiceId!)}`),
           fetch(`/api/lookup-invoice/${encodeURIComponent(lookupId)}`),
         ]);
 
-        // Process invoice record
+        // Process invoice record from server API
         if (invoiceRes.status === 'fulfilled' && invoiceRes.value.ok) {
           const invoiceData = await invoiceRes.value.json();
           setInvoice(invoiceData);
+        } else if (invoiceRes.status === 'fulfilled') {
+          // Log the error response for debugging
+          const errBody = await invoiceRes.value.json().catch(() => ({}));
+          console.warn('[InvoicePublicView] Server invoice lookup failed:', invoiceRes.value.status, errBody);
         }
 
         // Process spreadsheet data
@@ -120,9 +123,11 @@ export default function InvoicePublicView() {
         }
 
         // If neither returned data, show error
+        const hasStateData = !!(location.state as any)?.invoiceData;
         if (
           (invoiceRes.status !== 'fulfilled' || !invoiceRes.value.ok) &&
-          (sheetRes.status !== 'fulfilled' || !sheetRes.value.ok)
+          (sheetRes.status !== 'fulfilled' || !sheetRes.value.ok) &&
+          !hasStateData
         ) {
           setError('Invoice not found. Please check the invoice number and try again.');
         }
