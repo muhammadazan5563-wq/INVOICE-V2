@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.SUPABASE_URL || "https://jybjzbtgpnhkdyofayji.supabase.co";
-const supabaseKey = process.env.SUPABASE_SECRET_KEY || "sb_publishable_FDeECQfWSc89GcQVAUAhyA_QuEfE4AY";
+const supabaseKey = process.env.SUPABASE_SECRET_KEY || "sb_secret_UIkjVs1M3xJP2EgPXqRjdw_zC88aiJg";
 
 const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: { persistSession: false },
