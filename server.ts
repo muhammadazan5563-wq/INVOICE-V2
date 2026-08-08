@@ -447,11 +447,43 @@ app.get("/api/public-invoice/:id", async (req, res) => {
       return res.status(400).json({ error: "Invoice ID is required" });
     }
 
-    const { data, error } = await supabase
+    const cleanId = id.trim();
+    
+    // Try exact match first
+    let { data, error } = await supabase
       .from("invoices")
       .select("*")
-      .eq("id", id.trim())
+      .eq("id", cleanId)
       .single();
+
+    // If not found, try with common prefixes (INV-, REF-)
+    if ((error || !data) && !cleanId.toUpperCase().startsWith("INV-") && !cleanId.toUpperCase().startsWith("REF-")) {
+      const invResult = await supabase
+        .from("invoices")
+        .select("*")
+        .eq("id", `INV-${cleanId}`)
+        .single();
+      
+      if (invResult.data) {
+        data = invResult.data;
+        error = null;
+      }
+    }
+
+    // If still not found, try stripping prefix and searching
+    if ((error || !data) && (cleanId.toUpperCase().startsWith("INV-") || cleanId.toUpperCase().startsWith("REF-"))) {
+      const numericPart = cleanId.substring(4);
+      const invResult = await supabase
+        .from("invoices")
+        .select("*")
+        .eq("id", numericPart)
+        .single();
+      
+      if (invResult.data) {
+        data = invResult.data;
+        error = null;
+      }
+    }
 
     if (error || !data) {
       return res.status(404).json({ error: "Invoice not found" });
