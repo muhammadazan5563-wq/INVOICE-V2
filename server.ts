@@ -17,7 +17,7 @@ app.use(express.json());
 
 // Initialize Supabase client using server-side keys
 const supabaseUrl = process.env.SUPABASE_URL || "https://jybjzbtgpnhkdyofayji.supabase.co";
-const supabaseKey = process.env.SUPABASE_SECRET_KEY || "sb_secret_UIkjVs1M3xJP2EgPXqRjdw_zC88aiJg";
+const supabaseKey = process.env.SUPABASE_SECRET_KEY || "sb_publishable_FDeECQfWSc89GcQVAUAhyA_QuEfE4AY";
 
 if (!supabaseUrl || !supabaseKey) {
   console.warn("WARNING: Missing SUPABASE_URL or SUPABASE_SECRET_KEY environment variables.");
