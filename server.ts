@@ -448,46 +448,61 @@ app.get("/api/public-invoice/:id", async (req, res) => {
     }
 
     const cleanId = id.trim();
+    console.log(`[public-invoice] Looking up invoice with ID: "${cleanId}"`);
     
-    // Try exact match first
-    let { data, error } = await supabase
+    // Strategy: fetch ALL invoices and find the match (handles case sensitivity, prefix variations)
+    const { data: allInvoices, error: fetchError } = await supabase
       .from("invoices")
-      .select("*")
-      .eq("id", cleanId)
-      .single();
+      .select("*");
 
-    // If not found, try with common prefixes (INV-, REF-)
-    if ((error || !data) && !cleanId.toUpperCase().startsWith("INV-") && !cleanId.toUpperCase().startsWith("REF-")) {
-      const invResult = await supabase
-        .from("invoices")
-        .select("*")
-        .eq("id", `INV-${cleanId}`)
-        .single();
-      
-      if (invResult.data) {
-        data = invResult.data;
-        error = null;
-      }
+    if (fetchError) {
+      console.error("[public-invoice] Supabase fetch error:", fetchError);
+      return res.status(500).json({ error: "Database query failed", details: fetchError.message });
     }
 
-    // If still not found, try stripping prefix and searching
-    if ((error || !data) && (cleanId.toUpperCase().startsWith("INV-") || cleanId.toUpperCase().startsWith("REF-"))) {
-      const numericPart = cleanId.substring(4);
-      const invResult = await supabase
-        .from("invoices")
-        .select("*")
-        .eq("id", numericPart)
-        .single();
-      
-      if (invResult.data) {
-        data = invResult.data;
-        error = null;
-      }
+    if (!allInvoices || allInvoices.length === 0) {
+      console.log("[public-invoice] No invoices found in database at all");
+      return res.status(404).json({ error: "No invoices exist in database" });
     }
 
-    if (error || !data) {
-      return res.status(404).json({ error: "Invoice not found" });
+    console.log(`[public-invoice] Total invoices in DB: ${allInvoices.length}`);
+    console.log(`[public-invoice] Available IDs: ${allInvoices.map((i: any) => i.id).join(", ")}`);
+
+    // Try to find the invoice with flexible matching
+    const cleanIdUpper = cleanId.toUpperCase();
+    let numericPart = cleanId;
+    if (cleanIdUpper.startsWith("INV-") || cleanIdUpper.startsWith("REF-")) {
+      numericPart = cleanId.substring(4);
     }
+
+    let data = allInvoices.find((inv: any) => {
+      const invId = (inv.id || "").toString();
+      const invIdUpper = invId.toUpperCase();
+      // Exact match
+      if (invId === cleanId) return true;
+      // Case-insensitive match
+      if (invIdUpper === cleanIdUpper) return true;
+      // Match with INV- prefix added
+      if (invIdUpper === `INV-${cleanIdUpper}`) return true;
+      if (`INV-${invIdUpper}` === cleanIdUpper) return true;
+      // Match numeric part only
+      const invNumeric = invIdUpper.startsWith("INV-") ? invId.substring(4) : invId;
+      if (invNumeric === numericPart) return true;
+      if (invNumeric === cleanId) return true;
+      return false;
+    });
+
+    if (!data) {
+      console.log(`[public-invoice] No match found for "${cleanId}" among available IDs`);
+      return res.status(404).json({ 
+        error: "Invoice not found",
+        searched_id: cleanId,
+        available_count: allInvoices.length,
+        sample_ids: allInvoices.slice(0, 5).map((i: any) => i.id)
+      });
+    }
+
+    console.log(`[public-invoice] Found invoice: ${data.id}`);
 
     // Map to camelCase
     const invoice = {
